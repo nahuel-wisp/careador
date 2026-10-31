@@ -1,6 +1,6 @@
 # Despliegue en VM (Linux)
 
-Instalación de pruebas en una VM propia detrás de Traefik, ej. `https://arsa.nahuel.wisp.com.ar`.
+Instalación de pruebas en una VM propia detrás de Traefik, ej. `https://arsa.nmc.wisp.com.ar`.
 Probado para Debian 12 / Ubuntu 24.04.
 
 ## 1. Requisitos de la VM
@@ -82,7 +82,7 @@ Otros comandos: `usuario:clave <email>` (cambia la contraseña y cierra sus sesi
 
 Lo que la app necesita del proxy:
 
-- Enrutar `arsa.nahuel.wisp.com.ar` → `http://IP_DE_LA_VM:8080`.
+- Enrutar `arsa.nmc.wisp.com.ar` → `http://IP_DE_LA_VM:8080`.
 - HTTPS con Let's Encrypt (lo resuelve Traefik).
 - Pasar los headers `X-Forwarded-*` (Traefik lo hace por defecto) y `TRUST_PROXY=true` en la app.
 - Sin límite de tamaño de body menor a 10 MB (fotos). Traefik no limita por defecto.
@@ -94,7 +94,7 @@ Referencia mínima (proveedor de archivos), para adaptar a la configuración exi
 http:
   routers:
     careador-arsa:
-      rule: Host(`arsa.nahuel.wisp.com.ar`)
+      rule: Host(`arsa.nmc.wisp.com.ar`)
       entryPoints: [websecure]
       service: careador-arsa
       tls:
