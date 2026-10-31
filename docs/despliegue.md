@@ -26,11 +26,15 @@ con su puerto, su `.env` y sus datos.
 
 ## 1. Base del sistema
 
-> Esta sección la vamos completando juntos durante la instalación.
+Scripts numerados en `deploy/vm/`. Claude entra como `claude` (sólo clave, sin sudo, grupo `docker`);
+lo que necesita root lo corre el administrador por PuTTY con `sudo bash /home/claude/NN-nombre.sh`
+(Claude los deja copiados ahí).
 
-- Actualizaciones, zona horaria `America/Argentina/Buenos_Aires`, NTP.
-- Firewall (ufw): SSH sólo desde redes de gestión; puertos de apps sólo desde la IP de Traefik.
-- Docker Engine + plugin Compose desde el repositorio oficial de Docker.
+- `01-acceso-claude.sh`: crea el usuario `claude`.
+- `02-base.sh`: disco completo, zona horaria `America/Argentina/Buenos_Aires`, Docker + Compose desde el
+  repositorio oficial, y firewall: SSH sólo desde la VLAN de trabajo (10.10.20.0/24), puertos de apps
+  8000–8999 sólo desde el proxy (10.10.70.2). Deja 5 minutos para confirmar el firewall
+  (`sudo systemctl stop ufw-rescate.timer`); si no se confirma, se apaga solo.
 - Ruta/VPN hacia los lectores. Prueba desde la VM:
 
   ```bash
@@ -118,18 +122,8 @@ Lo que la app necesita y ya está resuelto:
   se podría falsificar la IP y esquivar el freno del login.
 - Body de hasta 10 MB (fotos): Traefik no limita por defecto.
 
-En la VM, los puertos de las instancias sólo para el proxy (Docker publica puertos por delante de ufw, así que la
-regla va en la cadena `DOCKER-USER`; se arma en la sección 1):
-
-```bash
-# Sólo 10.10.70.2 llega a 8080/8180. En DOCKER-USER el puerto ya está traducido al del contenedor,
-# por eso se compara el puerto original de la conexión (ctorigdstport).
-for p in 8080 8180; do
-  sudo iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport $p ! -s 10.10.70.2 -j DROP
-done
-```
-
-Estas reglas no sobreviven un reinicio: dejarlas persistentes al armar el firewall (sección 1).
+En la VM, los puertos de las instancias (rango 8000–8999) sólo los alcanza el proxy: lo deja armado
+`deploy/vm/02-base.sh` (sección 1), en la cadena `DOCKER-USER` porque Docker publica por delante de ufw.
 
 > Ojo: con el mapeo de puertos de Docker el contenedor ve la IP de origen real del proxy. Si en el
 > log de la app los pedidos aparecen con otra IP (p. ej. la puerta de enlace de Docker), `TRUST_PROXY`
