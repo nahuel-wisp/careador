@@ -8,14 +8,17 @@ import { ZodError } from 'zod';
 import type { Config } from './config';
 import { openDb, type Db } from './db';
 import { SecretBox } from './lib/crypto';
+import { EnrollmentSync, RETRY_MS } from './lib/enrollment';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
+import { employeeRoutes } from './routes/employees';
 import { simulatorRoutes } from './routes/simulator';
 
 export interface AppContext {
   config: Config;
   db: Db;
   secrets: SecretBox;
+  sync: EnrollmentSync;
 }
 
 export async function buildApp(config: Config) {
@@ -26,11 +29,21 @@ export async function buildApp(config: Config) {
     trustProxy: config.TRUST_PROXY,
   });
 
-  const ctx: AppContext = {
+  const ctx = {
     config,
     db: openDb(config.dataDir),
     secrets: new SecretBox(config.CAREADOR_SECRET),
-  };
+  } as AppContext;
+  ctx.sync = new EnrollmentSync(ctx);
+
+  // Reintenta lo pendiente (equipos que no respondían) cada tanto.
+  const retry = setInterval(() => ctx.sync.kick(), RETRY_MS);
+  retry.unref();
+  app.addHook('onClose', async () => {
+    clearInterval(retry);
+    await ctx.sync.idle();
+    ctx.db.$client.close();
+  });
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof ZodError) {
@@ -50,6 +63,7 @@ export async function buildApp(config: Config) {
   app.addContentTypeParser('image/jpeg', { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
 
   await deviceRoutes(app, ctx);
+  await employeeRoutes(app, ctx);
   await simulatorRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).

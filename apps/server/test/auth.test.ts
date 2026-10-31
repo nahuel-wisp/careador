@@ -13,10 +13,12 @@ const config = loadConfig({ CAREADOR_SECRET: 'x'.repeat(40), DATA_DIR: dataDir, 
 let app: Awaited<ReturnType<typeof buildApp>>;
 
 beforeAll(async () => {
-  openDb(config.dataDir)
+  const seed = openDb(config.dataDir);
+  seed
     .insert(appUsers)
     .values({ email: 'duenio@example.com', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
     .run();
+  seed.$client.close();
   app = await buildApp({ ...config });
   app.log.level = 'silent';
 });

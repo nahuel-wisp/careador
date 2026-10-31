@@ -15,10 +15,12 @@ export async function testApp(env: Record<string, string> = {}) {
     WEB_DIST: join(dataDir, 'nada'),
     ...env,
   });
-  openDb(config.dataDir)
+  const seed = openDb(config.dataDir);
+  seed
     .insert(appUsers)
     .values({ email: 'duenio@example.com', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
     .run();
+  seed.$client.close(); // en Windows, una base abierta impide borrar la carpeta al final
   const app = await buildApp(config);
   app.log.level = 'silent';
 
