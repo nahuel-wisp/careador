@@ -62,17 +62,15 @@ paso "4. Firewall"
 # DOCKER-USER, cargado desde after.rules para que ufw lo reponga en cada arranque/recarga.
 # Se compara la conexión ORIGINAL (destino esta VM, puerto de apps, origen ≠ proxy): así no se cortan
 # las respuestas al proxy ni las conexiones que las apps abren hacia afuera (p. ej. lectores en :8080).
-MARCA="# careador: puertos de apps sólo desde el proxy"
-if ! grep -qF "$MARCA" /etc/ufw/after.rules; then
-  cat >> /etc/ufw/after.rules <<EOF
-
-$MARCA
+# ufw reescribe este archivo en ASCII: nada de acentos en el bloque. Se borra el bloque viejo (si hay) y se pone de nuevo.
+sed -i '/^# careador:/,/^COMMIT$/d' /etc/ufw/after.rules
+cat >> /etc/ufw/after.rules <<EOF
+# careador: puertos de apps solo desde el proxy
 *filter
 :DOCKER-USER - [0:0]
 -A DOCKER-USER -p tcp -m conntrack --ctorigdst $VM_IP --ctorigdstport $PUERTOS_APPS ! --ctorigsrc $PROXY -j DROP
 COMMIT
 EOF
-fi
 
 ufw default deny incoming >/dev/null
 ufw default allow outgoing >/dev/null
