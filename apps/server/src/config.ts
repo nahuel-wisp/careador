@@ -6,11 +6,14 @@ const schema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATA_DIR: z.string().default('./data'),
   CAREADOR_SECRET: z.string().min(32, 'CAREADOR_SECRET debe tener al menos 32 caracteres'),
-  /** Confiar en los headers X-Forwarded-* (true detrás de Traefik/Nginx). */
+  /**
+   * Confiar en los headers X-Forwarded-*: "false", "true" (cualquier origen) o IPs/CIDR del proxy
+   * separadas por coma (recomendado: sólo el proxy, si no cualquiera falsifica su IP y esquiva el rate limit).
+   */
   TRUST_PROXY: z
-    .enum(['true', 'false'])
+    .string()
     .default('false')
-    .transform((v) => v === 'true'),
+    .transform((v): boolean | string => (v === 'true' ? true : v === 'false' || v === '' ? false : v)),
   /** Nombre del entorno, se muestra en la app ("pruebas", "produccion"). */
   CAREADOR_ENTORNO: z.string().default('produccion'),
   /** Fuerza sólo lectura en TODOS los equipos (entorno de pruebas contra equipos reales). */

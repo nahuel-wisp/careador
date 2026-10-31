@@ -1,6 +1,6 @@
 # Despliegue en VM con Docker Compose
 
-VM de pruebas detrás de Traefik (`https://arsa.nmc.wisp.com.ar`).
+VM `10.10.70.5` (Careador y futuros proyectos) detrás de Traefik (`https://arsa.nmc.wisp.com.ar`).
 Base: **Ubuntu Server 26.04**, 4 vCPU, 8 GB RAM, 300 GB disco, Docker Compose.
 Backups de la VM con Nakivo hacia el servidor de backups.
 
@@ -8,7 +8,7 @@ Backups de la VM con Nakivo hacia el servidor de backups.
 
 ```
 Traefik (HTTPS, Let's Encrypt)
-   │  arsa.nmc.wisp.com.ar → IP_VM:8080
+   │  arsa.nmc.wisp.com.ar → 10.10.70.5:8080
    ▼
 VM Ubuntu 26.04 + Docker
    ├── /opt/careador          código (git) → imagen careador:latest
@@ -92,41 +92,48 @@ sudo docker compose exec app node dist/cli.js usuario:crear tu@email.com "Tu Nom
 
 Otros comandos: `usuario:clave <email>`, `usuario:listar`, `db:respaldo`.
 
-## 5. Traefik
+## 5. Traefik (proxy de WISP, 10.10.70.2)
 
-Lo que la app necesita del proxy:
+El proxy se maneja con su **panel** (https://10.10.70.2:9443, desde la VLAN de trabajo). El panel escribe
+`/etc/traefik/dynamic/sitios.yml`: **no editar archivos de Traefik a mano**, el panel los pisa.
+Detalle del proxy: `C:\Users\nahuel\Claude\proxy\CLAUDE.md`.
 
-- Enrutar `arsa.nmc.wisp.com.ar` → `http://IP_VM:8080` y `arsa-test.nmc.wisp.com.ar` → `http://IP_VM:8180`, con HTTPS (Let's Encrypt).
-- Pasar `X-Forwarded-*` (Traefik lo hace por defecto). La app ya viene con `TRUST_PROXY=true`.
-- Body de hasta 10 MB (fotos). Traefik no limita por defecto.
+Publicar las dos instancias:
 
-Referencia mínima (proveedor de archivos), para adaptar a la configuración existente:
+1. DNS: ya resuelve por el comodín `*.nmc.wisp.com.ar` → 181.191.64.7 (el panel lo valida al guardar).
+2. En el panel, «nuevo sitio» por cada una (destino http, sin verificar certificado):
 
-```yaml
-http:
-  routers:
-    careador-arsa:
-      rule: Host(`arsa.nmc.wisp.com.ar`)
-      entryPoints: [websecure]
-      service: careador-arsa
-      tls:
-        certResolver: letsencrypt
-    careador-arsa-test:
-      rule: Host(`arsa-test.nmc.wisp.com.ar`)
-      entryPoints: [websecure]
-      service: careador-arsa-test
-      tls:
-        certResolver: letsencrypt
-  services:
-    careador-arsa:
-      loadBalancer:
-        servers:
-          - url: http://IP_VM:8080
-    careador-arsa-test:
-      loadBalancer:
-        servers:
-          - url: http://IP_VM:8180
+   | Nombre | Dominio | Destino |
+   |---|---|---|
+   | Careador Arsa | `arsa.nmc.wisp.com.ar` | `http://10.10.70.5:8080` |
+   | Careador Arsa pruebas | `arsa-test.nmc.wisp.com.ar` | `http://10.10.70.5:8180` |
+
+3. El certificado de Let's Encrypt lo saca Traefik solo en segundos. Probar: `https://arsa-test.nmc.wisp.com.ar/api/health`.
+
+Lo que la app necesita y ya está resuelto:
+
+- Encabezados de seguridad y límite general de pedidos: los pone el proxy para todos los sitios (`seguridad@file`).
+- `X-Forwarded-*`: Traefik los manda por defecto. La app confía en ellos **sólo si vienen de 10.10.70.2**
+  (`TRUST_PROXY` en `compose.yml`; otro proxy → poner `TRUST_PROXY=IP` en el `.env`). Si confiara en cualquiera,
+  se podría falsificar la IP y esquivar el freno del login.
+- Body de hasta 10 MB (fotos): Traefik no limita por defecto.
+
+En la VM, los puertos de las instancias sólo para el proxy (Docker publica puertos por delante de ufw, así que la
+regla va en la cadena `DOCKER-USER`; se arma en la sección 1):
+
+```bash
+# Sólo 10.10.70.2 llega a 8080/8180. En DOCKER-USER el puerto ya está traducido al del contenedor,
+# por eso se compara el puerto original de la conexión (ctorigdstport).
+for p in 8080 8180; do
+  sudo iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport $p ! -s 10.10.70.2 -j DROP
+done
 ```
+
+Estas reglas no sobreviven un reinicio: dejarlas persistentes al armar el firewall (sección 1).
+
+> Ojo: con el mapeo de puertos de Docker el contenedor ve la IP de origen real del proxy. Si en el
+> log de la app los pedidos aparecen con otra IP (p. ej. la puerta de enlace de Docker), `TRUST_PROXY`
+> no va a coincidir: revisar antes de dar por buena la IP de los clientes.
 
 ## 6. Actualizar: pruebas → producción
 

@@ -6,9 +6,9 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      TRUST_PROXY: "true"
+      TRUST_PROXY: "${TRUST_PROXY:-10.10.70.2}" # sólo el proxy de WISP puede decir la IP real del cliente
     ports:
-      - "${CAREADOR_PORT:-8080}:8080" # Traefik apunta a IP_VM:CAREADOR_PORT
+      - "${CAREADOR_PORT:-8080}:8080" # Traefik apunta a 10.10.70.5:CAREADOR_PORT
     volumes:
       - ./data:/data
     logging:

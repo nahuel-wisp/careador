@@ -36,7 +36,7 @@ Principios que no hay que romper:
 - Cambios de esquema: editar `apps/server/src/db/schema.ts` y
   `npm run db:generate -w @careador/server -- --name descripcion` (las migraciones se aplican solas).
 
-## Entornos (VM Ubuntu 26.04 + Docker Compose, detrás de Traefik)
+## Entornos (VM 10.10.70.5, Ubuntu 26.04 + Docker Compose, detrás de Traefik 10.10.70.2)
 
 | | Producción | Pruebas |
 |---|---|---|
