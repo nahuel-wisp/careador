@@ -1,4 +1,4 @@
-// Empaqueta el servidor (y el paquete de drivers) en un solo archivo para desplegar en Windows Server.
+// Empaqueta el servidor (y el paquete de drivers) para producción.
 import { build } from 'esbuild';
 
 await build({

@@ -1,0 +1,18 @@
+# Una instancia de Careador (un cliente). Copiar a /srv/careador-<cliente>/compose.yml
+# junto con su .env, y cambiar el puerto si hay más de una instancia en la VM.
+services:
+  app:
+    image: careador:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TRUST_PROXY: "true"
+    ports:
+      - "8080:8080" # <puerto en la VM>:8080 — Traefik apunta a IP_VM:<puerto>
+    volumes:
+      - ./data:/data
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"

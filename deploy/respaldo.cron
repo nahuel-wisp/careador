@@ -1,0 +1,4 @@
+# Respaldo diario de cada instancia de Careador (copiar a /etc/cron.d/careador).
+# Deja copias consistentes de la base en /srv/careador-*/data/respaldos (30 días),
+# que después recoge Nakivo con el backup de la VM.
+30 3 * * * root for d in /srv/careador-*/; do cd "$d" && docker compose exec -T app node dist/cli.js db:respaldo /data/respaldos 30; done >> /var/log/careador-respaldo.log 2>&1

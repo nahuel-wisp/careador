@@ -39,6 +39,6 @@ npm run build
 npm start              # sirve API + web en PORT (default 8080)
 ```
 
-Instalación en VM Linux detrás de Traefik: [docs/despliegue.md](docs/despliegue.md).
+Instalación con Docker Compose en VM detrás de Traefik: [docs/despliegue.md](docs/despliegue.md).
 
 Primer usuario: `npm run cli -w @careador/server -- usuario:crear email "Nombre" admin`.

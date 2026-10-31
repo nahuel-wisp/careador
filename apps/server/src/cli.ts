@@ -3,8 +3,11 @@
  *   node dist/cli.js usuario:crear <email> "<nombre>" [admin|manager]
  *   node dist/cli.js usuario:clave <email>
  *   node dist/cli.js usuario:listar
+ *   node dist/cli.js db:respaldo [carpeta] [dias_a_conservar]
  */
 import { eq } from 'drizzle-orm';
+import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import { stdin, stdout } from 'node:process';
 import { createInterface } from 'node:readline/promises';
 import { loadConfig } from './config';
@@ -57,8 +60,22 @@ async function main() {
       }
       break;
     }
+    case 'db:respaldo': {
+      // Copia consistente de la base aunque la app esté escribiendo, y borra copias viejas.
+      const [dir = join(loadConfig().dataDir, 'respaldos'), keepDays = '30'] = args;
+      mkdirSync(dir, { recursive: true });
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      const file = join(dir, `careador-${stamp}.db`);
+      await db.$client.backup(file);
+      const limit = Date.now() - Number(keepDays) * 24 * 60 * 60 * 1000;
+      for (const f of readdirSync(dir)) {
+        if (/^careador-.*\.db$/.test(f) && statSync(join(dir, f)).mtimeMs < limit) unlinkSync(join(dir, f));
+      }
+      console.log(`Respaldo creado: ${file}`);
+      break;
+    }
     default:
-      console.log('Comandos: usuario:crear, usuario:clave, usuario:listar');
+      console.log('Comandos: usuario:crear, usuario:clave, usuario:listar, db:respaldo [carpeta] [dias]');
   }
 }
 
