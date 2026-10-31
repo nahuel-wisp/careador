@@ -125,3 +125,19 @@ export const appUsers = sqliteTable(
   },
   (t) => [uniqueIndex('app_users_email_uq').on(t.email)],
 );
+
+/** Sesiones de login. Se guarda el hash del token, nunca el token. */
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(), // sha256(token) en hex
+    userId: integer('user_id')
+      .notNull()
+      .references(() => appUsers.id, { onDelete: 'cascade' }),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    userAgent: text('user_agent'),
+    ip: text('ip'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index('sessions_user_idx').on(t.userId)],
+);

@@ -1,3 +1,5 @@
+import fastifyCookie from '@fastify/cookie';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { existsSync } from 'node:fs';
@@ -6,6 +8,7 @@ import { ZodError } from 'zod';
 import type { Config } from './config';
 import { openDb, type Db } from './db';
 import { SecretBox } from './lib/crypto';
+import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
 
 export interface AppContext {
@@ -18,6 +21,8 @@ export async function buildApp(config: Config) {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL ?? 'info' },
     bodyLimit: 5 * 1024 * 1024, // fotos faciales
+    // Detrás de un proxy (Traefik): confiar en X-Forwarded-For/Proto/Host.
+    trustProxy: config.TRUST_PROXY,
   });
 
   const ctx: AppContext = {
@@ -37,6 +42,9 @@ export async function buildApp(config: Config) {
 
   app.get('/api/health', async () => ({ ok: true, time: new Date().toISOString() }));
 
+  await app.register(fastifyCookie);
+  await app.register(fastifyRateLimit, { global: false });
+  await authRoutes(app, ctx);
   await deviceRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).

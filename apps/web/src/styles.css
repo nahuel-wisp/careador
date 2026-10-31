@@ -35,7 +35,7 @@ body {
 
 .content {
   flex: 1;
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(80px + env(safe-area-inset-bottom));
+  padding: 8px 16px calc(80px + env(safe-area-inset-bottom));
   max-width: 720px;
   width: 100%;
   margin: 0 auto;
@@ -93,3 +93,44 @@ button {
   min-height: 44px;
 }
 button:disabled { opacity: 0.6; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top) + 8px) 16px 0;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+button.link {
+  background: none;
+  color: var(--accent);
+  padding: 8px 0;
+  min-height: auto;
+}
+
+.login {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  gap: 8px;
+}
+.login img { border-radius: 16px; }
+
+.form { display: grid; gap: 14px; width: 100%; max-width: 360px; margin-top: 12px; }
+.form label { display: grid; gap: 6px; font-size: 0.9rem; color: var(--muted); }
+
+input {
+  font: inherit;
+  font-size: 16px; /* evita el zoom automático de iOS */
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--fg);
+}

@@ -39,5 +39,6 @@ npm run build
 npm start              # sirve API + web en PORT (default 8080)
 ```
 
-Pensado para correr como servicio de Windows en el servidor del cliente y publicarse con HTTPS
-(ver docs/contexto.md). **No exponer a internet hasta que esté implementado el login.**
+Instalación en VM Linux detrás de Traefik: [docs/despliegue.md](docs/despliegue.md).
+
+Primer usuario: `npm run cli -w @careador/server -- usuario:crear email "Nombre" admin`.

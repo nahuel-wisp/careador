@@ -8,10 +8,13 @@
     "build": "node build.mjs",
     "start": "node --env-file-if-exists=../../.env dist/index.js",
     "db:generate": "drizzle-kit generate",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "cli": "tsx --env-file-if-exists=../../.env src/cli.ts"
   },
   "dependencies": {
     "@careador/devices": "*",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.1",
     "@fastify/static": "^9.0.0",
     "better-sqlite3": "^12.0.0",
     "drizzle-orm": "^0.45.0",

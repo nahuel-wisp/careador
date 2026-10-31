@@ -2,8 +2,8 @@
 import { build } from 'esbuild';
 
 await build({
-  entryPoints: ['src/index.ts'],
-  outfile: 'dist/index.js',
+  entryPoints: ['src/index.ts', 'src/cli.ts'],
+  outdir: 'dist',
   bundle: true,
   platform: 'node',
   target: 'node22',
