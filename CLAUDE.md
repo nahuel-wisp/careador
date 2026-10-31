@@ -64,7 +64,9 @@ Hecho:
 - Docker + despliegue por entornos; instructivo.
 
 Pendiente, en orden:
-1. Instalar la VM (Ubuntu 26.04 instalándose), sistema base, Docker, instancias y rutas en Traefik.
+1. Instancias en la VM (`/opt/careador`, `/srv/careador-arsa*`, sección 2–4 de `docs/despliegue.md`). Ya hecho:
+   VM 10.10.70.5 con base (scripts `deploy/vm/01` y `02`: acceso `claude`, disco, hora, Docker, firewall)
+   y los dos sitios publicados en el panel del proxy.
 2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
 3. **Alta de personal** con foto desde el celular (`apps/web/src/lib/image.ts` ya prepara el JPEG 480×640)
    y sincronización a los equipos (tabla `enrollments`, reintentos si el equipo no responde).
