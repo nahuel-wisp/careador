@@ -16,6 +16,8 @@ const schema = z.object({
     .transform((v): boolean | string => (v === 'true' ? true : v === 'false' || v === '' ? false : v)),
   /** Nombre del entorno, se muestra en la app ("pruebas", "produccion"). */
   CAREADOR_ENTORNO: z.string().default('produccion'),
+  /** Nombre de la empresa cliente, se muestra arriba en la app. */
+  CAREADOR_EMPRESA: z.string().default(''),
   /** Fuerza sólo lectura en TODOS los equipos (entorno de pruebas contra equipos reales). */
   DEVICES_READ_ONLY: z
     .enum(['true', 'false'])

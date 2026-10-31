@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Careador',
-        short_name: 'Careador',
-        description: 'Personal, horarios y asistencia',
+        name: 'Fichada',
+        short_name: 'Fichada',
+        description: 'Ingresos, egresos y asistencia del personal',
         lang: 'es-AR',
         start_url: '/',
         display: 'standalone',

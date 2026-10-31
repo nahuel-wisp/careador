@@ -1,8 +1,9 @@
 import { NavLink, Route, Routes } from 'react-router';
 import { useAuth } from './auth';
-import { EntornoBanner, EntornoProvider } from './entorno';
+import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
 import { DevicesPage } from './pages/Devices';
 import { LoginPage } from './pages/Login';
+import { PersonalPage } from './pages/Personal';
 import { SimulatorPage } from './pages/Simulator';
 import { Placeholder } from './pages/Placeholder';
 
@@ -23,14 +24,15 @@ export function App() {
     <div className="app">
       <EntornoBanner />
       <header className="topbar">
-        <span className="muted">{user.name}</span>
-        <button className="link" onClick={logout}>
+        <Brand />
+        <span className="muted small">{user.name}</span>
+        <button className="link small" onClick={logout}>
           Salir
         </button>
       </header>
       <main className="content">
         <Routes>
-          <Route path="/" element={<Placeholder title="Personal" text="Altas, bajas y foto facial desde el celular." />} />
+          <Route path="/" element={<PersonalPage />} />
           <Route path="/horarios" element={<Placeholder title="Horarios" text="Turnos por sucursal y por empleado." />} />
           <Route path="/reportes" element={<Placeholder title="Reportes" text="Asistencia y horas en Excel." />} />
           <Route path="/equipos" element={<DevicesPage />} />
@@ -48,4 +50,9 @@ export function App() {
     </div>
     </EntornoProvider>
   );
+}
+
+function Brand() {
+  const empresa = useEntorno()?.empresa;
+  return <span className="brand">Fichada{empresa ? ` · ${empresa}` : ''}</span>;
 }

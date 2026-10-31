@@ -58,6 +58,19 @@ export function DevicesPage() {
     load();
   }
 
+  async function importPersons(d: Device) {
+    if (!confirm(`¿Traer como empleados a las personas que ya están cargadas en "${d.name}"?`)) return;
+    setTesting(d.id);
+    try {
+      const r = await api<{ created: number; existing: number }>(`/devices/${d.id}/import-persons`, { method: 'POST', body: '{}' });
+      alert(`Listo: ${r.created} nuevos, ${r.existing} ya estaban. Revisá nombres y fotos en Personal.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo importar');
+    } finally {
+      setTesting(null);
+    }
+  }
+
   const siteName = (id: number) => sites.find((s) => s.id === id)?.name ?? '';
 
   return (
@@ -97,6 +110,9 @@ export function DevicesPage() {
             <div className="actions">
               <button onClick={() => test(d.id)} disabled={testing === d.id}>
                 {testing === d.id ? 'Probando…' : 'Probar'}
+              </button>
+              <button className="secondary" onClick={() => importPersons(d)} disabled={testing === d.id}>
+                Importar personas
               </button>
               {d.brand === 'simulador' && (
                 <Link className="button secondary" to={`/simulador/${d.id}`}>

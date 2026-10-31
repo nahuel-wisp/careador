@@ -42,6 +42,7 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
   /** Datos del entorno para que la app muestre avisos (pruebas, sólo lectura). */
   app.get('/api/entorno', async () => ({
     nombre: config.CAREADOR_ENTORNO,
+    empresa: config.CAREADOR_EMPRESA,
     equiposSoloLectura: config.DEVICES_READ_ONLY,
     simulador: config.SIMULATOR_ENABLED,
     drivers: drivers(),

@@ -3,6 +3,7 @@ import { api } from './api';
 
 export interface Entorno {
   nombre: string;
+  empresa: string;
   equiposSoloLectura: boolean;
   simulador: boolean;
   drivers: Array<{ brand: string; label: string; simulated: boolean }>;

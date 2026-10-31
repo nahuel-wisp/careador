@@ -1,7 +1,9 @@
 # Careador — guía para trabajar en este repo
 
 App web mobile-first (PWA) para gestionar personal, horarios y asistencia sobre lectores faciales,
-hablando directo con los equipos (Hikvision ISAPI) sin HikCentral. Primer cliente: **Arsa**
+hablando directo con los equipos (Hikvision ISAPI) sin HikCentral. En la app se llama **Fichada** (Careador
+queda como nombre interno del repo). Primer cliente: **Arsa** = American Rider SA, concesionario de motos de
+La Plata, oficial Benelli y multimarca (`CAREADOR_EMPRESA` en el .env de cada instancia)
 (2 sucursales, 2 × DS-K1T321 firmware V3.9.2 build 240222, ~11–20 empleados, 3 dueños con iPhone).
 
 Contexto completo y decisiones: `docs/contexto.md`. Despliegue: `docs/despliegue.md`.
@@ -61,19 +63,18 @@ Hecho:
 - Lector simulado con pantalla web (`/simulador/:id`) y modo sólo lectura.
 - Login (cookie de sesión 60 días, scrypt, rate limit, chequeo de origen) y CLI de usuarios.
 - Alta/baja de sucursales y equipos desde la app; prueba de conexión.
-- Docker + despliegue por entornos; instructivo.
+- Docker + despliegue por entornos; instructivo. Pruebas y producción andando en 10.10.70.5 (31/10).
+- **Personal**: alta con foto desde el celular, edición, baja/re-alta, importar personas de un equipo.
+  Cada empleado activo va a todos los equipos habilitados (`lib/enrollment.ts`, reintento cada 5 min).
 
 Pendiente, en orden:
-1. Instancias en la VM (`/opt/careador`, `/srv/careador-arsa*`, sección 2–4 de `docs/despliegue.md`). Ya hecho:
-   VM 10.10.70.5 con base (scripts `deploy/vm/01` y `02`: acceso `claude`, disco, hora, Docker, firewall)
-   y los dos sitios publicados en el panel del proxy.
+1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY) y la ruta a
+   los lectores (WireGuard hacia las MikroTik, necesita sudo).
 2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
-3. **Alta de personal** con foto desde el celular (`apps/web/src/lib/image.ts` ya prepara el JPEG 480×640)
-   y sincronización a los equipos (tabla `enrollments`, reintentos si el equipo no responde).
-4. **Sincronización de marcaciones** periódica desde los equipos (tabla `events`, `eventsSyncedUntil`).
-5. **Horarios** (modelo en `docs/contexto.md`): turnos por día, almuerzo, tolerancias, asignación por
+3. **Sincronización de marcaciones** periódica desde los equipos (tabla `events`, `eventsSyncedUntil`).
+4. **Horarios** (modelo en `docs/contexto.md`): turnos por día, almuerzo, tolerancias, asignación por
    empleado con vigencia, default por sucursal; rotativos/horas extra/feriados contemplados.
-6. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
+5. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
    (`docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`) + hoja "Resumen" por empleado.
 
 Preguntas abiertas al cliente:
