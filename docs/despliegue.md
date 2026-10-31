@@ -49,36 +49,44 @@ sudo docker build -t careador:latest .
 
 Si el repo es privado, clonar con una deploy key de sólo lectura.
 
-## 3. Instancia del cliente
+## 3. Instancias: producción y pruebas
+
+| | Producción | Pruebas |
+|---|---|---|
+| URL | `arsa.nmc.wisp.com.ar` | `arsa-test.nmc.wisp.com.ar` |
+| Carpeta | `/srv/careador-arsa` | `/srv/careador-arsa-test` |
+| Puerto VM | 8080 | 8180 |
+| Imagen | `careador:estable` | `careador:latest` |
+| Equipos reales | lectura y escritura | **sólo lectura** |
+| Lector simulado | no | sí |
+
+Cada instancia tiene su propia base y su propia `CAREADOR_SECRET`.
 
 ```bash
-sudo mkdir -p /srv/careador-arsa/data
-sudo cp /opt/careador/deploy/compose.yml /srv/careador-arsa/
-sudo chown 1000:1000 /srv/careador-arsa/data   # el contenedor corre como usuario node (uid 1000)
+for inst in arsa arsa-test; do
+  sudo mkdir -p /srv/careador-$inst/data
+  sudo cp /opt/careador/deploy/compose.yml /srv/careador-$inst/
+  sudo chown 1000:1000 /srv/careador-$inst/data   # el contenedor corre como usuario node (uid 1000)
+done
+sudo cp /opt/careador/deploy/env.produccion /srv/careador-arsa/.env
+sudo cp /opt/careador/deploy/env.pruebas    /srv/careador-arsa-test/.env
+# Poner una CAREADOR_SECRET distinta en cada .env:  openssl rand -base64 48
+sudo chmod 600 /srv/careador-*/.env
+
+sudo docker tag careador:latest careador:estable   # sólo la primera vez
+for inst in arsa arsa-test; do (cd /srv/careador-$inst && sudo docker compose up -d); done
+curl http://127.0.0.1:8080/api/health && curl http://127.0.0.1:8180/api/health
 ```
 
-`/srv/careador-arsa/.env`:
-
-```ini
-CAREADOR_SECRET=<generar con: openssl rand -base64 48>
-```
-
-```bash
-sudo chmod 600 /srv/careador-arsa/.env
-cd /srv/careador-arsa && sudo docker compose up -d
-curl http://127.0.0.1:8080/api/health
-```
-
-**Guardar `CAREADOR_SECRET` fuera de la VM** (gestor de contraseñas): sin esa clave no se pueden
+**Guardar las `CAREADOR_SECRET` fuera de la VM** (gestor de contraseñas): sin esa clave no se pueden
 descifrar las credenciales de los equipos guardadas en la base.
 
-Para otra instancia en la misma VM: otra carpeta `/srv/careador-<cliente>` y cambiar el puerto en
-`compose.yml` (ej. `"8081:8080"`).
+En pruebas aparece una franja naranja ("Entorno: pruebas") para no confundirse.
 
-## 4. Primer usuario
+## 4. Primer usuario (en cada instancia)
 
 ```bash
-cd /srv/careador-arsa
+cd /srv/careador-arsa       # y después /srv/careador-arsa-test
 sudo docker compose exec app node dist/cli.js usuario:crear tu@email.com "Tu Nombre" admin
 ```
 
@@ -88,7 +96,7 @@ Otros comandos: `usuario:clave <email>`, `usuario:listar`, `db:respaldo`.
 
 Lo que la app necesita del proxy:
 
-- Enrutar `arsa.nmc.wisp.com.ar` → `http://IP_VM:8080`, con HTTPS (Let's Encrypt).
+- Enrutar `arsa.nmc.wisp.com.ar` → `http://IP_VM:8080` y `arsa-test.nmc.wisp.com.ar` → `http://IP_VM:8180`, con HTTPS (Let's Encrypt).
 - Pasar `X-Forwarded-*` (Traefik lo hace por defecto). La app ya viene con `TRUST_PROXY=true`.
 - Body de hasta 10 MB (fotos). Traefik no limita por defecto.
 
@@ -103,21 +111,33 @@ http:
       service: careador-arsa
       tls:
         certResolver: letsencrypt
+    careador-arsa-test:
+      rule: Host(`arsa-test.nmc.wisp.com.ar`)
+      entryPoints: [websecure]
+      service: careador-arsa-test
+      tls:
+        certResolver: letsencrypt
   services:
     careador-arsa:
       loadBalancer:
         servers:
           - url: http://IP_VM:8080
+    careador-arsa-test:
+      loadBalancer:
+        servers:
+          - url: http://IP_VM:8180
 ```
 
-## 6. Actualizar
+## 6. Actualizar: pruebas → producción
 
 ```bash
-sudo /opt/careador/deploy/actualizar.sh
+sudo /opt/careador/deploy/actualizar.sh pruebas      # trae lo último de GitHub y lo instala en PRUEBAS
+# ... probar en arsa-test.nmc.wisp.com.ar ...
+sudo /opt/careador/deploy/actualizar.sh produccion   # pasa esa misma versión a PRODUCCIÓN
+sudo /opt/careador/deploy/actualizar.sh volver       # si algo falla, producción vuelve a la anterior
 ```
 
-`git pull` + nueva imagen + reinicio de todas las instancias. Las migraciones de base se aplican solas.
-La versión anterior queda como `careador:anterior` para volver atrás.
+Las migraciones de base se aplican solas al arrancar cada instancia.
 
 ## 7. Respaldos
 

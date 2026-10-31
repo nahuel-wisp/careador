@@ -1,14 +1,14 @@
-# Una instancia de Careador (un cliente). Copiar a /srv/careador-<cliente>/compose.yml
-# junto con su .env, y cambiar el puerto si hay más de una instancia en la VM.
+# Una instancia de Careador. Copiar a /srv/careador-<instancia>/compose.yml junto con su .env.
+# La imagen y el puerto salen del .env de la instancia (ver env.produccion / env.pruebas).
 services:
   app:
-    image: careador:latest
+    image: ${CAREADOR_IMAGE:-careador:estable}
     restart: unless-stopped
     env_file: .env
     environment:
       TRUST_PROXY: "true"
     ports:
-      - "8080:8080" # <puerto en la VM>:8080 — Traefik apunta a IP_VM:<puerto>
+      - "${CAREADOR_PORT:-8080}:8080" # Traefik apunta a IP_VM:CAREADOR_PORT
     volumes:
       - ./data:/data
     logging:

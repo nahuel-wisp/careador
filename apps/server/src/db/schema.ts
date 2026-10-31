@@ -28,6 +28,8 @@ export const devices = sqliteTable('devices', {
   https: integer('https', { mode: 'boolean' }).notNull().default(false),
   utcOffset: text('utc_offset').notNull().default('-03:00'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  /** No enviar cambios al equipo (sólo leer personas y marcaciones). */
+  readOnly: integer('read_only', { mode: 'boolean' }).notNull().default(false),
   /** Datos informados por el equipo. */
   model: text('model'),
   serialNumber: text('serial_number'),

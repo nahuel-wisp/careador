@@ -11,6 +11,18 @@ const schema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /** Nombre del entorno, se muestra en la app ("pruebas", "produccion"). */
+  CAREADOR_ENTORNO: z.string().default('produccion'),
+  /** Fuerza sólo lectura en TODOS los equipos (entorno de pruebas contra equipos reales). */
+  DEVICES_READ_ONLY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  /** Habilita el lector simulado. */
+  SIMULATOR_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   /** Carpeta con el build de la web. Si existe, el servidor la sirve. */
   WEB_DIST: z.string().optional(),
 });

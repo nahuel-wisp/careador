@@ -40,11 +40,18 @@ export interface DeviceDriver {
   openDoor?(doorNo: number): Promise<void>;
 }
 
+export interface DriverOptions {
+  /** Carpeta donde el driver puede guardar estado propio (lo usa el simulador). */
+  dataDir?: string;
+}
+
 export interface DriverFactory {
   brand: string;
   /** Nombre legible para mostrar en la app. */
   label: string;
-  create(connection: DeviceConnection): DeviceDriver;
+  /** Driver de prueba: sólo se ofrece si el entorno lo habilita. */
+  simulated?: boolean;
+  create(connection: DeviceConnection, options?: DriverOptions): DeviceDriver;
 }
 
 export class DeviceError extends Error {
@@ -56,6 +63,7 @@ export class DeviceError extends Error {
       | 'not_found'
       | 'invalid_request'
       | 'unsupported'
+      | 'read_only'
       | 'device_error',
     readonly details?: unknown,
   ) {

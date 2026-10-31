@@ -134,3 +134,34 @@ input {
   background: var(--card);
   color: var(--fg);
 }
+
+h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+.small { font-size: 0.8rem; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.card.col { flex-direction: column; align-items: stretch; }
+.actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tag { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; background: #f59e0b22; color: #b45309; }
+.banner { background: #f59e0b; color: #1c1917; text-align: center; font-size: 0.85rem; padding: calc(env(safe-area-inset-top) + 4px) 8px 4px; }
+.banner + .topbar { padding-top: 8px; }
+.list.compact { gap: 4px; }
+.event { display: grid; grid-template-columns: 20px auto 1fr; gap: 10px; font-size: 0.9rem; }
+.check { display: flex !important; align-items: center; gap: 8px; color: var(--fg) !important; }
+.check input { width: 20px; height: 20px; }
+select { font: inherit; font-size: 16px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--fg); }
+a.button, button.secondary { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; padding: 10px 16px; border-radius: 10px; min-height: 44px; background: transparent; color: var(--accent); border: 1px solid var(--accent); font: inherit; }
+button.link.danger, .danger { color: var(--error); }
+label.link { color: var(--accent); cursor: pointer; }
+
+.sim { display: grid; gap: 14px; }
+.sim-screen { background: #0b1220; color: #e2e8f0; border-radius: 20px; padding: 20px; text-align: center; border: 6px solid #1e293b; }
+.sim-clock { font-size: 2.6rem; font-weight: 600; letter-spacing: 1px; }
+.sim-name { color: #94a3b8; margin-bottom: 12px; }
+.sim-result { padding: 14px; border-radius: 12px; font-size: 1.1rem; min-height: 56px; display: flex; align-items: center; justify-content: center; }
+.ok-bg { background: #16a34a; color: white; }
+.error-bg { background: #dc2626; color: white; }
+.sim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
+.sim-person { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.sim-face { width: 96px; height: 128px; padding: 0; border-radius: 14px; overflow: hidden; background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+.sim-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sim-face.unknown span { font-size: 2.5rem; }
+.sim-person-name { font-size: 0.85rem; font-weight: 600; }

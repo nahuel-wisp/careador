@@ -10,6 +10,7 @@ import { openDb, type Db } from './db';
 import { SecretBox } from './lib/crypto';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
+import { simulatorRoutes } from './routes/simulator';
 
 export interface AppContext {
   config: Config;
@@ -45,7 +46,11 @@ export async function buildApp(config: Config) {
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, { global: false });
   await authRoutes(app, ctx);
+  // Imágenes JPEG crudas (fotos faciales).
+  app.addContentTypeParser('image/jpeg', { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
+
   await deviceRoutes(app, ctx);
+  await simulatorRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).
   const webDist = resolve(config.WEB_DIST ?? '../web/dist');

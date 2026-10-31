@@ -1,7 +1,9 @@
 import { NavLink, Route, Routes } from 'react-router';
 import { useAuth } from './auth';
+import { EntornoBanner, EntornoProvider } from './entorno';
 import { DevicesPage } from './pages/Devices';
 import { LoginPage } from './pages/Login';
+import { SimulatorPage } from './pages/Simulator';
 import { Placeholder } from './pages/Placeholder';
 
 const tabs = [
@@ -17,7 +19,9 @@ export function App() {
   if (!user) return <LoginPage />;
 
   return (
+    <EntornoProvider>
     <div className="app">
+      <EntornoBanner />
       <header className="topbar">
         <span className="muted">{user.name}</span>
         <button className="link" onClick={logout}>
@@ -30,6 +34,7 @@ export function App() {
           <Route path="/horarios" element={<Placeholder title="Horarios" text="Turnos por sucursal y por empleado." />} />
           <Route path="/reportes" element={<Placeholder title="Reportes" text="Asistencia y horas en Excel." />} />
           <Route path="/equipos" element={<DevicesPage />} />
+          <Route path="/simulador/:id" element={<SimulatorPage />} />
         </Routes>
       </main>
       <nav className="tabbar">
@@ -41,5 +46,6 @@ export function App() {
         ))}
       </nav>
     </div>
+    </EntornoProvider>
   );
 }

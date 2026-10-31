@@ -1,36 +1,51 @@
-import { createDriver, DeviceError, listDrivers } from '@careador/devices';
+import { DeviceError, listDrivers } from '@careador/devices';
 import { eq } from 'drizzle-orm';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { devices, sites } from '../db/schema';
 import type { AppContext } from '../app';
+import { devices, sites } from '../db/schema';
+import { driverFor, isReadOnly } from '../lib/devices';
 
 const deviceInput = z.object({
   siteId: z.number().int().positive(),
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
   brand: z.string().min(1),
-  host: z.string().min(1),
-  username: z.string().min(1),
+  host: z.string().trim().min(1),
+  username: z.string().trim().min(1),
   password: z.string().min(1),
   https: z.boolean().default(false),
   utcOffset: z.string().regex(/^[+-]\d{2}:\d{2}$/).default('-03:00'),
+  readOnly: z.boolean().default(false),
 });
 
 const siteInput = z.object({
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
   timezone: z.string().default('America/Argentina/Buenos_Aires'),
 });
 
-/** Nunca devolver la contraseña (ni cifrada) al cliente. */
-function publicDevice(d: typeof devices.$inferSelect) {
-  const { passwordEnc: _omit, ...rest } = d;
-  return rest;
-}
-
 export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
-  const { db, secrets } = ctx;
+  const { db, secrets, config } = ctx;
+  const drivers = () => listDrivers({ includeSimulated: config.SIMULATOR_ENABLED });
 
-  app.get('/api/drivers', async () => listDrivers());
+  /** Nunca devolver la contraseña (ni cifrada) al cliente. */
+  function publicDevice(d: typeof devices.$inferSelect) {
+    const { passwordEnc: _omit, ...rest } = d;
+    return { ...rest, effectiveReadOnly: isReadOnly(ctx, d) };
+  }
+
+  function sendDeviceError(reply: FastifyReply, err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code = err instanceof DeviceError ? err.code : 'device_error';
+    return reply.code(code === 'read_only' ? 409 : 502).send({ ok: false, code, error: message });
+  }
+
+  /** Datos del entorno para que la app muestre avisos (pruebas, sólo lectura). */
+  app.get('/api/entorno', async () => ({
+    nombre: config.CAREADOR_ENTORNO,
+    equiposSoloLectura: config.DEVICES_READ_ONLY,
+    simulador: config.SIMULATOR_ENABLED,
+    drivers: drivers(),
+  }));
 
   app.get('/api/sites', async () => db.select().from(sites).all());
 
@@ -45,8 +60,11 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post('/api/devices', async (req, reply) => {
     const input = deviceInput.parse(req.body);
     const { password, ...rest } = input;
-    if (!listDrivers().some((d) => d.brand === input.brand)) {
-      return reply.code(400).send({ error: `Marca no soportada: ${input.brand}` });
+    if (!drivers().some((d) => d.brand === input.brand)) {
+      return reply.code(400).send({ error: `Marca no disponible: ${input.brand}` });
+    }
+    if (!db.select().from(sites).where(eq(sites.id, input.siteId)).get()) {
+      return reply.code(400).send({ error: 'Sucursal inexistente' });
     }
     const [row] = db
       .insert(devices)
@@ -56,20 +74,18 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
     return reply.code(201).send(publicDevice(row!));
   });
 
+  app.delete<{ Params: { id: string } }>('/api/devices/:id', async (req, reply) => {
+    const res = db.delete(devices).where(eq(devices.id, Number(req.params.id))).run();
+    return res.changes ? { ok: true } : reply.code(404).send({ error: 'Equipo inexistente' });
+  });
+
   /** Prueba la conexión con el equipo y guarda modelo/serie/firmware. */
   app.post<{ Params: { id: string } }>('/api/devices/:id/test', async (req, reply) => {
     const id = Number(req.params.id);
     const device = db.select().from(devices).where(eq(devices.id, id)).get();
     if (!device) return reply.code(404).send({ error: 'Equipo inexistente' });
 
-    const driver = createDriver(device.brand, {
-      host: device.host,
-      username: device.username,
-      password: secrets.decrypt(device.passwordEnc),
-      https: device.https,
-      utcOffset: device.utcOffset,
-    });
-
+    const driver = driverFor(ctx, device);
     try {
       const [info, capabilities] = await Promise.all([driver.getInfo(), driver.getCapabilities()]);
       db.update(devices)
@@ -87,8 +103,7 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       db.update(devices).set({ lastError: message }).where(eq(devices.id, id)).run();
-      const code = err instanceof DeviceError ? err.code : 'device_error';
-      return reply.code(502).send({ ok: false, code, error: message });
+      return sendDeviceError(reply, err);
     }
   });
 }
