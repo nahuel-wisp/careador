@@ -143,7 +143,8 @@ Funciones previstas para la segunda parte (fuera del alcance de la fase 1):
 
 ## Pendientes de definir
 
-- [ ] Stack tecnológico (backend, base de datos, frontend).
+- [x] Stack tecnológico: Node.js + TypeScript, Fastify, SQLite (Drizzle), React + Vite PWA, exceljs.
 - [ ] Método de publicación HTTPS.
-- [ ] Ejemplo del Excel actual.
-- [ ] Firmware e IPs de los equipos (no commitear credenciales).
+- [ ] Ejemplo del Excel actual (anonimizado en `docs/ejemplos/`; el original va a `docs/ejemplos/privado/`, que no se sube).
+- [x] Firmware de los DS-K1T321: V3.9.2 build 240222.
+- [ ] IPs de los equipos (no commitear credenciales).

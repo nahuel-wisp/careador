@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# Datos reales de clientes: nunca al repo
+docs/ejemplos/privado/
