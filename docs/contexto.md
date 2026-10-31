@@ -90,8 +90,39 @@ Conceptos:
 ## Reportes
 
 - Excel mensual (o por rango de fechas) por sucursal / empleado.
-- Tomar como base el Excel que hoy entrega el integrador (pendiente: sumar un ejemplo anonimizado
-  al repo en `docs/ejemplos/`).
+
+### Reporte actual (HCAC) — `docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`
+
+Ejemplo real de septiembre 2026, anonimizado (nombres inventados, sucursales renombradas).
+
+Formato:
+
+- Encabezado: título "Registros de entradas y salidas", hora de exportación, operador, período.
+- Una fila por **empleado y día con marcaciones**, ordenado por empleado y fecha descendente.
+- Columnas: Nombre · Apellido · Departamento (= sucursal, ej. `All Departments>Sucursal 2`) · Fecha ·
+  Día de la semana · Entrada · Salida · Duración · Duración total (formato `HH : MM`).
+- Entrada = primera marcación del día; Salida = última. Duración = salida − entrada, **sin descontar
+  almuerzo** (no se marca al ir/volver de almorzar).
+- Si falta una de las dos marcas se muestra `-` y la duración queda en `00 : 00`.
+- No informa: tardanzas, ausencias, horas esperadas vs. trabajadas, totales por empleado.
+
+Lo que muestran los datos (11 empleados con marcaciones: 3 en Sucursal 1, 8 en Sucursal 2):
+
+| Sucursal | Lunes a viernes | Sábado |
+|---|---|---|
+| Sucursal 1 | ~09:00 – 18:00 | ~09:00 – 13:00 |
+| Sucursal 2 | mayoría ~08:00 – 18:00; algunos 09:00 – 18:00 u 08:00 – 17:00 | ~09:00 – 13:00 (no todos) |
+
+Hay días sueltos con salida 13:00/14:00 (medio día) y 3 casos de marca faltante en el mes.
+
+### Reporte nuevo (propuesta)
+
+1. **Hoja "Registros"**: mismo formato que el actual, para que no extrañen nada.
+2. **Hoja "Resumen"**: una fila por empleado con días trabajados, horas totales, horas esperadas según
+   su horario, llegadas tarde (cantidad y minutos), salidas anticipadas, ausencias y marcas incompletas.
+3. En "Registros", marcar con color las llegadas tarde, salidas anticipadas y marcas faltantes, y sumar
+   los días hábiles sin marcación como "Ausente".
+4. Filtros: período, sucursal, empleado.
 
 ## Multi-marca y control de acceso (segunda parte)
 
@@ -145,6 +176,6 @@ Funciones previstas para la segunda parte (fuera del alcance de la fase 1):
 
 - [x] Stack tecnológico: Node.js + TypeScript, Fastify, SQLite (Drizzle), React + Vite PWA, exceljs.
 - [ ] Método de publicación HTTPS.
-- [ ] Ejemplo del Excel actual (anonimizado en `docs/ejemplos/`; el original va a `docs/ejemplos/privado/`, que no se sube).
+- [x] Ejemplo del Excel actual (anonimizado en `docs/ejemplos/`; el original queda en `docs/ejemplos/privado/`, que no se sube).
 - [x] Firmware de los DS-K1T321: V3.9.2 build 240222.
 - [ ] IPs de los equipos (no commitear credenciales).
