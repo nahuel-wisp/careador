@@ -66,15 +66,16 @@ Hecho:
 - Docker + despliegue por entornos; instructivo. Pruebas y producción andando en 10.10.70.5 (31/10).
 - **Personal**: alta con foto desde el celular, edición, baja/re-alta, importar personas de un equipo.
   Cada empleado activo va a todos los equipos habilitados (`lib/enrollment.ts`, reintento cada 5 min).
+- **Marcaciones**: se leen de cada equipo cada 5 min y al arrancar (`lib/events.ts`, sólo lectura) y la
+  pantalla Asistencia muestra por día entrada (primera) / salida (última) y quién no marcó.
 
 Pendiente, en orden:
 1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY) y la ruta a
    los lectores (WireGuard hacia las MikroTik, necesita sudo).
 2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
-3. **Sincronización de marcaciones** periódica desde los equipos (tabla `events`, `eventsSyncedUntil`).
-4. **Horarios** (modelo en `docs/contexto.md`): turnos por día, almuerzo, tolerancias, asignación por
+3. **Horarios** (modelo en `docs/contexto.md`): turnos por día, almuerzo, tolerancias, asignación por
    empleado con vigencia, default por sucursal; rotativos/horas extra/feriados contemplados.
-5. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
+4. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
    (`docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`) + hoja "Resumen" por empleado.
 
 Preguntas abiertas al cliente:

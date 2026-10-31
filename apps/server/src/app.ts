@@ -9,6 +9,8 @@ import type { Config } from './config';
 import { openDb, type Db } from './db';
 import { SecretBox } from './lib/crypto';
 import { EnrollmentSync, RETRY_MS } from './lib/enrollment';
+import { EventSync } from './lib/events';
+import { attendanceRoutes } from './routes/attendance';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
 import { employeeRoutes } from './routes/employees';
@@ -19,6 +21,7 @@ export interface AppContext {
   db: Db;
   secrets: SecretBox;
   sync: EnrollmentSync;
+  events: EventSync;
 }
 
 export async function buildApp(config: Config) {
@@ -35,13 +38,18 @@ export async function buildApp(config: Config) {
     secrets: new SecretBox(config.CAREADOR_SECRET),
   } as AppContext;
   ctx.sync = new EnrollmentSync(ctx);
+  ctx.events = new EventSync(ctx);
 
-  // Reintenta lo pendiente (equipos que no respondían) cada tanto.
-  const retry = setInterval(() => ctx.sync.kick(), RETRY_MS);
+  // Cada tanto: reintenta lo pendiente (equipos que no respondían) y trae marcaciones nuevas.
+  const retry = setInterval(() => {
+    ctx.sync.kick();
+    ctx.events.kick();
+  }, RETRY_MS);
   retry.unref();
+  ctx.events.kick(); // al arrancar, para no esperar el primer intervalo
   app.addHook('onClose', async () => {
     clearInterval(retry);
-    await ctx.sync.idle();
+    await Promise.all([ctx.sync.idle(), ctx.events.idle()]);
     ctx.db.$client.close();
   });
 
@@ -64,6 +72,7 @@ export async function buildApp(config: Config) {
 
   await deviceRoutes(app, ctx);
   await employeeRoutes(app, ctx);
+  await attendanceRoutes(app, ctx);
   await simulatorRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).

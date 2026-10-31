@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router';
 import { useAuth } from './auth';
 import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
+import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { LoginPage } from './pages/Login';
 import { PersonalPage } from './pages/Personal';
@@ -10,7 +11,7 @@ import { Placeholder } from './pages/Placeholder';
 const tabs = [
   { to: '/', label: 'Personal', icon: '👤' },
   { to: '/horarios', label: 'Horarios', icon: '🕒' },
-  { to: '/reportes', label: 'Reportes', icon: '📊' },
+  { to: '/asistencia', label: 'Asistencia', icon: '📋' },
   { to: '/equipos', label: 'Equipos', icon: '📟' },
 ];
 
@@ -34,7 +35,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<PersonalPage />} />
           <Route path="/horarios" element={<Placeholder title="Horarios" text="Turnos por sucursal y por empleado." />} />
-          <Route path="/reportes" element={<Placeholder title="Reportes" text="Asistencia y horas en Excel." />} />
+          <Route path="/asistencia" element={<AttendancePage />} />
           <Route path="/equipos" element={<DevicesPage />} />
           <Route path="/simulador/:id" element={<SimulatorPage />} />
         </Routes>

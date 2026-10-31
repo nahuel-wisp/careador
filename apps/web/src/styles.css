@@ -178,3 +178,5 @@ label.button { display: inline-flex; align-items: center; justify-content: cente
 .photo.empty { display: flex; align-items: center; justify-content: center; color: var(--muted); background: var(--bg); }
 .footer-actions { justify-content: space-between; margin-top: 16px; }
 .brand { font-weight: 600; }
+.card.attendance { padding: 10px 14px; }
+.times { display: flex; gap: 6px; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
