@@ -93,6 +93,45 @@ Conceptos:
 - Tomar como base el Excel que hoy entrega el integrador (pendiente: sumar un ejemplo anonimizado
   al repo en `docs/ejemplos/`).
 
+## Multi-marca y control de acceso (segunda parte)
+
+El sistema se va a reutilizar en otros proyectos, así que **no puede quedar atado a Hikvision**.
+Desde la fase 1 el diseño separa el núcleo de los equipos:
+
+```
+App (personal, horarios, reportes, accesos)
+        │  usa sólo el modelo común
+        ▼
+Capa de dispositivos (interfaz común)
+        │
+        ├── Driver Hikvision (ISAPI)       ← fase 1
+        ├── Driver ZKTeco / Dahua / ...    ← futuro
+        └── Driver intercom / portero      ← futuro
+```
+
+Principios:
+
+- **Interfaz común de driver**: alta/baja/edición de personas, carga de credenciales (cara,
+  tarjeta, PIN, huella), lectura de eventos, hora, estado, abrir puerta, etc.
+- **Capacidades declaradas por driver/equipo**: cada equipo informa qué soporta (`face`, `card`,
+  `pin`, `fingerprint`, `door_control`, `intercom`, `realtime_events`...). La app muestra u oculta
+  funciones según eso, en lugar de asumir un modelo.
+- **Modelo de datos neutral**: personas, credenciales, eventos y puertas en formato propio;
+  cada driver traduce desde/hacia el formato de su marca. Se guarda el evento crudo para auditoría.
+- **Equipos como entidades configurables**: marca, modelo, IP, credenciales (cifradas), sucursal,
+  puertas asociadas. Agregar un equipo no requiere tocar código si el driver ya existe.
+- **Mismo canal para comandos**: la orden "abrir puerta X" pasa por la capa de dispositivos y queda
+  registrada (quién, cuándo, desde dónde).
+
+Funciones previstas para la segunda parte (fuera del alcance de la fase 1):
+
+- Apertura remota de puertas desde la app.
+- Permisos de acceso: quién entra por qué puerta y en qué horario.
+- Porteros de edificios / video intercom: llamadas a la app, ver cámara y abrir desde el celular
+  (evaluar SIP/WebRTC y notificaciones push en PWA de iOS).
+- Visitas y credenciales temporales (QR / PIN de un solo uso).
+- Multi-cliente / multi-sitio, para usar la misma plataforma con varios clientes.
+
 ## Riesgos y puntos a validar
 
 - **Convivencia con HCAC**: si HCAC sigue gestionando los equipos, puede pisar o borrar personas
