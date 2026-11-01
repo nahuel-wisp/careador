@@ -76,13 +76,19 @@ describe('personal y sincronización a los equipos', () => {
 
   it('importa las personas que ya estaban en un equipo', async () => {
     await inject('POST', `/api/simulador/${simB}/personas`, { id: '500', name: 'Pérez Juan Carlos' });
+    await t.app.inject({
+      method: 'PUT',
+      url: `/api/simulador/${simB}/cara/500`,
+      headers: { ...t.headers, 'content-type': 'image/jpeg' },
+      payload: JPEG,
+    });
     const res = (await inject('POST', `/api/devices/${simB}/import-persons`)).json();
-    expect(res).toEqual({ created: 1, existing: 1 });
+    expect(res).toEqual({ created: 1, existing: 1, faces: 1, facesFailed: 0 });
     await sync();
     const juan = (await inject('GET', '/api/employees')).json().find((e: { code: string }) => e.code === '500');
-    expect(juan).toMatchObject({ lastName: 'Pérez', firstName: 'Juan Carlos', siteId });
-    // Y se lo lleva al otro equipo.
-    expect((await sim(simA)).persons.map((p: { id: string }) => p.id)).toContain('500');
+    expect(juan).toMatchObject({ lastName: 'Pérez', firstName: 'Juan Carlos', siteId, hasFace: true });
+    // Y se lo lleva al otro equipo, con la foto.
+    expect((await sim(simA)).persons.find((p: { id: string }) => p.id === '500')).toMatchObject({ hasFace: true });
   });
 
   it('un equipo caído deja el error guardado para reintentar', async () => {

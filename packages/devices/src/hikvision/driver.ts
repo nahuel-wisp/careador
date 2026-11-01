@@ -163,6 +163,24 @@ export class HikvisionDriver implements DeviceDriver {
     }
   }
 
+  async getFace(personId: string): Promise<Uint8Array | null> {
+    const res = await this.client.json<{ MatchList?: { FPID?: string; faceURL?: string }[] }>({
+      method: 'POST',
+      path: '/ISAPI/Intelligent/FDLib/FDSearch?format=json',
+      json: { searchResultPosition: 0, maxResults: 1, ...FACE_LIB, FPID: personId },
+    });
+    const url = res.MatchList?.[0]?.faceURL;
+    if (!url) return null;
+    // El equipo arma la URL con su IP de LAN: se pide sólo la ruta, por el mismo host que usamos nosotros.
+    const { pathname, search } = new URL(url);
+    const pic = await this.client.request({ method: 'GET', path: pathname + search });
+    if (!pic.ok) {
+      await pic.body?.cancel();
+      throw new DeviceError(`No se pudo bajar la foto de ${personId} (HTTP ${pic.status})`, 'device_error');
+    }
+    return new Uint8Array(await pic.arrayBuffer());
+  }
+
   async deleteFace(personId: string): Promise<void> {
     const q = `FDID=${FACE_LIB.FDID}&faceLibType=${FACE_LIB.faceLibType}`;
     await this.client.json({

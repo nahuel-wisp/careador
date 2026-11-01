@@ -53,7 +53,7 @@ export async function simulatorRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get<{ Params: { id: string; personId: string } }>('/api/simulador/:id/cara/:personId', async (req, reply) => {
     const s = simFor(req, reply);
     if (!s) return;
-    const jpeg = s.sim.getFace(req.params.personId);
+    const jpeg = await s.sim.getFace(req.params.personId);
     if (!jpeg) return reply.code(404).send({ error: 'Sin foto' });
     return reply.header('Cache-Control', 'no-store').type('image/jpeg').send(jpeg);
   });

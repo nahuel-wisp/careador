@@ -198,9 +198,9 @@ export class SimulatedDriver implements DeviceDriver {
     };
   }
 
-  getFace(personId: string): Buffer | undefined {
+  async getFace(personId: string): Promise<Buffer | null> {
     const face = this.load().persons[personId]?.face;
-    return face ? Buffer.from(face, 'base64') : undefined;
+    return face ? Buffer.from(face, 'base64') : null;
   }
 
   private addEvent(e: Omit<StoredEvent, 'deviceEventId' | 'time'> & { time?: Date }): AccessEvent {

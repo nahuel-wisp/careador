@@ -126,16 +126,19 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
 
   /**
    * Trae las personas que ya están cargadas en un equipo (p. ej. las que cargó HikCentral) como empleados,
-   * con su mismo legajo. No trae las fotos: quedan en el equipo, y se pueden volver a sacar desde la app.
+   * con su mismo legajo y la foto que ya reconoce el equipo (para los que no tienen foto en la app).
    */
   app.post<{ Params: { id: string } }>('/api/devices/:id/import-persons', async (req, reply) => {
     const deviceId = Number(req.params.id);
     const device = db.select().from(devices).where(eq(devices.id, deviceId)).get();
     if (!device) return reply.code(404).send({ error: 'Equipo inexistente' });
 
+    const driver = driverFor(ctx, device);
     let created = 0;
     let existing = 0;
-    for await (const p of driverFor(ctx, device).listPersons()) {
+    let faces = 0;
+    let facesFailed = 0;
+    for await (const p of driver.listPersons()) {
       let emp = db.select().from(employees).where(eq(employees.code, p.id)).get();
       if (emp) {
         existing++;
@@ -153,8 +156,30 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
         .values({ deviceId, employeeId: emp!.id, status: 'synced', faceSynced: (p.faceCount ?? 0) > 0, syncedAt: new Date() })
         .onConflictDoNothing()
         .run();
+
+      // La foto que ya reconoce el equipo, si la app todavía no tiene una.
+      const hasFace = db.select({ id: employeeFaces.employeeId }).from(employeeFaces).where(eq(employeeFaces.employeeId, emp!.id)).get();
+      if (!hasFace && (p.faceCount ?? 1) > 0 && driver.getFace) {
+        try {
+          const jpeg = await driver.getFace(p.id);
+          if (!jpeg) continue;
+          const buf = Buffer.from(jpeg);
+          if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf.length > MAX_FACE_BYTES) throw new Error('no es un JPEG válido');
+          db.insert(employeeFaces).values({ employeeId: emp!.id, jpeg: buf }).run();
+          // A los demás equipos hay que mandársela; a éste no.
+          markPending(ctx, emp!.id, { face: true });
+          db.update(enrollments)
+            .set({ status: 'synced', faceSynced: true, syncedAt: new Date(), lastError: null })
+            .where(and(eq(enrollments.deviceId, deviceId), eq(enrollments.employeeId, emp!.id)))
+            .run();
+          faces++;
+        } catch (err) {
+          facesFailed++;
+          req.log.warn({ err, personId: p.id }, 'No se pudo traer la foto');
+        }
+      }
     }
     sync.kick();
-    return { created, existing };
+    return { created, existing, faces, facesFailed };
   });
 }

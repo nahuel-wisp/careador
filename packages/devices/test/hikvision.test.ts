@@ -101,6 +101,17 @@ beforeAll(async () => {
           }),
         );
       }
+      if (req.url === '/ISAPI/Intelligent/FDLib/FDSearch?format=json') {
+        const { FPID } = JSON.parse(body);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        // Como el equipo real: la URL apunta a su IP de LAN, no a la que usamos para llegar.
+        const MatchList = FPID === '7' ? [{ FPID, faceURL: 'http://192.168.1.64/LOCALS/pic/enrlFace/0/0000000007.jpg@WEB000000000020' }] : [];
+        return res.end(JSON.stringify({ responseStatusStrg: 'OK', numOfMatches: MatchList.length, MatchList }));
+      }
+      if (req.url === '/LOCALS/pic/enrlFace/0/0000000007.jpg@WEB000000000020') {
+        res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+        return res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+      }
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ statusCode: 4, statusString: 'Invalid Operation', subStatusCode: 'notSupport' }));
     });
@@ -118,6 +129,12 @@ describe('HikvisionDriver contra equipo simulado', () => {
     for await (const p of driver.listPersons()) persons.push(p);
     expect(persons).toHaveLength(45);
     expect(persons[44]).toMatchObject({ id: '45', name: 'Empleado 45', enabled: true });
+  });
+
+  it('baja la foto de una persona por el host configurado', async () => {
+    const driver = new HikvisionDriver({ host, username: USER, password: PASS });
+    expect([...(await driver.getFace('7'))!]).toEqual([0xff, 0xd8, 0xff, 0xd9]);
+    expect(await driver.getFace('8')).toBeNull();
   });
 
   it('informa credenciales inválidas', async () => {

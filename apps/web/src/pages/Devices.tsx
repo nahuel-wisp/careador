@@ -62,8 +62,15 @@ export function DevicesPage() {
     if (!confirm(`¿Traer como empleados a las personas que ya están cargadas en "${d.name}"?`)) return;
     setTesting(d.id);
     try {
-      const r = await api<{ created: number; existing: number }>(`/devices/${d.id}/import-persons`, { method: 'POST', body: '{}' });
-      alert(`Listo: ${r.created} nuevos, ${r.existing} ya estaban. Revisá nombres y fotos en Personal.`);
+      const r = await api<{ created: number; existing: number; faces: number; facesFailed: number }>(
+        `/devices/${d.id}/import-persons`,
+        { method: 'POST', body: '{}' },
+      );
+      alert(
+        `Listo: ${r.created} nuevos, ${r.existing} ya estaban, ${r.faces} fotos traídas` +
+          (r.facesFailed ? ` (${r.facesFailed} no se pudieron bajar)` : '') +
+          '. Revisá nombres y fotos en Personal.',
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo importar');
     } finally {

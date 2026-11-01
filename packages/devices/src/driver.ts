@@ -28,6 +28,8 @@ export interface DeviceDriver {
   /** Carga o reemplaza la cara de la persona. `jpeg` ya debe venir en el formato que acepta el equipo. */
   setFace?(personId: string, jpeg: Uint8Array): Promise<void>;
   deleteFace?(personId: string): Promise<void>;
+  /** Foto facial cargada en el equipo (JPEG), o null si no tiene. */
+  getFace?(personId: string): Promise<Uint8Array | null>;
 
   // --- Eventos ---
   getEvents(query: EventQuery): AsyncIterable<AccessEvent>;
