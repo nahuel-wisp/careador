@@ -84,10 +84,10 @@ h2 { font-size: 1.05rem; margin: 20px 0 8px; }
   border-bottom: 2px solid transparent;
 }
 .navtabs a:hover { color: #fff; }
-.navtabs .ico { font-size: 1.35rem; line-height: 1; }
 .navtabs a.active { color: #fff; border-bottom-color: var(--accent); }
 .topnav .user { display: flex; gap: 14px; align-items: center; white-space: nowrap; }
-.topnav .user a { color: var(--nav-fg); text-decoration: none; }
+.topnav .user a { color: var(--nav-fg); text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.8rem; }
+.topnav .ico { font-size: 1.35rem; line-height: 1; }
 .topnav .user a:hover { color: #fff; }
 .banner { background: #f59e0b; color: #1c1917; text-align: center; font-size: 0.85rem; padding: 3px 8px; }
 

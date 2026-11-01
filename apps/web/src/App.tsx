@@ -63,12 +63,23 @@ export function App() {
           </nav>
           <div className="user">
             <a href="#" onClick={(e) => (e.preventDefault(), setVista(celular ? 'pc' : 'celular'))}>
-              {celular ? 'Versión PC' : 'Versión celular'}
+              <span className="ico" aria-hidden>
+                {celular ? '💻' : '📱'}
+              </span>
+              <span>{celular ? 'Versión PC' : 'Versión celular'}</span>
             </a>
             <Link to="/sugerencias" state={{ from: pathname }}>
-              Sugerencias
+              <span className="ico" aria-hidden>
+                💬
+              </span>
+              <span>Sugerencias</span>
             </Link>
-            <Link to="/cuenta">{user.name}</Link>
+            <Link to="/cuenta">
+              <span className="ico" aria-hidden>
+                🔑
+              </span>
+              <span>{user.name}</span>
+            </Link>
           </div>
         </header>
         <main className="content">
