@@ -12,6 +12,8 @@ export const sites = sqliteTable('sites', {
   name: text('name').notNull(),
   /** Zona horaria IANA, ej. "America/Argentina/Buenos_Aires". */
   timezone: text('timezone').notNull().default('America/Argentina/Buenos_Aires'),
+  /** Horario que tiene el personal de la sucursal si no tiene uno propio. */
+  scheduleId: integer('schedule_id').references(() => schedules.id, { onDelete: 'set null' }),
   ...timestamps,
 });
 
@@ -143,3 +145,81 @@ export const sessions = sqliteTable(
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
+
+/** Horario de un día: entrada y salida en hora local "HH:MM". */
+export interface DaySchedule {
+  start: string;
+  end: string;
+}
+
+/** Horario semanal (ej. "Lun-Vie Arsa 1 + sábados"). */
+export const schedules = sqliteTable('schedules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  /** 7 posiciones, 0 = domingo (como Date.getDay()); null = no trabaja ese día. */
+  days: text('days', { mode: 'json' }).$type<(DaySchedule | null)[]>().notNull(),
+  /** Minutos de gracia: llegar hasta N min tarde o salir N min antes no cuenta. */
+  lateToleranceMin: integer('late_tolerance_min').notNull().default(15),
+  earlyToleranceMin: integer('early_tolerance_min').notNull().default(15),
+  ...timestamps,
+});
+
+/** Horario propio de un empleado, con vigencia (fechas "AAAA-MM-DD", hasta inclusive; null = sin fin). */
+export const scheduleAssignments = sqliteTable(
+  'schedule_assignments',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    employeeId: integer('employee_id')
+      .notNull()
+      .references(() => employees.id, { onDelete: 'cascade' }),
+    scheduleId: integer('schedule_id')
+      .notNull()
+      .references(() => schedules.id, { onDelete: 'cascade' }),
+    validFrom: text('valid_from').notNull(),
+    validTo: text('valid_to'),
+  },
+  (t) => [index('schedule_assignments_employee_idx').on(t.employeeId)],
+);
+
+export const ABSENCE_KINDS = [
+  'vacaciones',
+  'franco',
+  'licencia',
+  'enfermedad',
+  'feriado',
+  'permiso_tarde',
+  'permiso_salida',
+  'otro',
+] as const;
+export type AbsenceKind = (typeof ABSENCE_KINDS)[number];
+
+/**
+ * Novedad: vacaciones, franco, licencia, feriado, permiso… entre dos fechas (inclusive, "AAAA-MM-DD").
+ * Sin empleado = para todos (feriados).
+ */
+export const absences = sqliteTable(
+  'absences',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ABSENCE_KINDS }).notNull(),
+    dateFrom: text('date_from').notNull(),
+    dateTo: text('date_to').notNull(),
+    note: text('note'),
+    createdBy: integer('created_by').references(() => appUsers.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [index('absences_dates_idx').on(t.dateFrom, t.dateTo)],
+);
+
+/** Certificados y otros comprobantes adjuntos a una novedad. */
+export const absenceFiles = sqliteTable('absence_files', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  absenceId: integer('absence_id')
+    .notNull()
+    .references(() => absences.id, { onDelete: 'cascade' }),
+  fileName: text('file_name').notNull(),
+  mime: text('mime').notNull(),
+  data: blob('data', { mode: 'buffer' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});

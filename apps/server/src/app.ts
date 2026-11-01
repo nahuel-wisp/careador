@@ -14,6 +14,7 @@ import { attendanceRoutes } from './routes/attendance';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
 import { employeeRoutes } from './routes/employees';
+import { scheduleRoutes } from './routes/schedules';
 import { simulatorRoutes } from './routes/simulator';
 
 export interface AppContext {
@@ -67,11 +68,16 @@ export async function buildApp(config: Config) {
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, { global: false });
   await authRoutes(app, ctx);
-  // Imágenes JPEG crudas (fotos faciales).
-  app.addContentTypeParser('image/jpeg', { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
+  // Archivos crudos: fotos faciales (JPEG) y comprobantes de novedades (fotos o PDF).
+  app.addContentTypeParser(
+    ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'],
+    { parseAs: 'buffer' },
+    (_req, body, done) => done(null, body),
+  );
 
   await deviceRoutes(app, ctx);
   await employeeRoutes(app, ctx);
+  await scheduleRoutes(app, ctx);
   await attendanceRoutes(app, ctx);
   await simulatorRoutes(app, ctx);
 

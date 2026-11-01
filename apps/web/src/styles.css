@@ -51,7 +51,7 @@ h1 { font-size: 1.6rem; margin: 0 0 12px; }
   position: fixed;
   inset: auto 0 0 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--card);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
@@ -180,3 +180,24 @@ label.button { display: inline-flex; align-items: center; justify-content: cente
 .brand { font-weight: 600; }
 .card.attendance { padding: 10px 14px; }
 .times { display: flex; gap: 6px; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+
+/* Horarios, novedades y estados de asistencia */
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; background: var(--border); color: var(--fg); white-space: nowrap; }
+.badge.bad { background: #dc262622; color: var(--error); }
+.badge.warn-bg { background: #f59e0b22; color: #b45309; }
+.badge.kind-vacaciones, .badge.kind-franco, .badge.kind-feriado { background: #0284c722; color: var(--accent); }
+.badge.kind-licencia, .badge.kind-enfermedad, .badge.kind-otro { background: #7c3aed22; color: #7c3aed; }
+.badge.kind-permiso_tarde, .badge.kind-permiso_salida { background: #16a34a22; color: var(--ok); }
+.times-col { text-align: right; }
+.small-btn { min-height: 36px !important; padding: 6px 12px !important; font-size: 0.85rem; }
+.week { display: grid; gap: 8px; }
+.week-day { display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 48px; }
+.times-edit { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 6px; }
+.times-edit input { padding: 8px 6px; width: 100%; min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two input { width: 100%; min-width: 0; }
+.files { display: grid; gap: 8px; }
+.file { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.9rem; }
+.file a { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+label.inline { display: flex !important; align-items: center; gap: 12px; color: var(--fg) !important; }

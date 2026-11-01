@@ -28,3 +28,17 @@ export async function prepareFaceJpeg(
   }
   throw new Error('No se pudo procesar la imagen');
 }
+
+/** Achica una foto (ej. un certificado sacado con el celular) para guardarla: lado mayor ≤ maxSide, JPEG. */
+export async function shrinkImage(file: Blob, maxSide = 1600): Promise<Blob> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.8));
+  if (!blob) throw new Error('No se pudo procesar la imagen');
+  return blob;
+}

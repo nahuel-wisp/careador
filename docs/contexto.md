@@ -105,6 +105,17 @@ HikCentral Access Control (versión gratis) en un Windows de Arsa. Nombres y leg
   Hay 3 personas fuera de los departamentos, sin horario (¿dueños/administración?).
 - Regla global: cálculo por **primera entrada y última salida**; sin marca de entrada o de salida = **ausente**;
   llegar tarde o salir antes no cuenta como ausente. No hay grupos de asistencia ni aprobaciones cargadas.
+- Las 3 personas sin departamento son los dueños.
+
+### Cómo lo resuelve Fichada
+
+- El personal **rota entre sucursales**: el día se mide con el horario de la sucursal donde marcó la entrada
+  (salvo que el empleado tenga un horario propio).
+- Sin marca de salida se muestra «sin salida» (no ausente, a diferencia de HikCentral): es más útil para
+  corregirlo, y el Excel puede contarlo como haga falta.
+- Horas trabajadas = de la primera a la última marca (el almuerzo cuenta como trabajado, como en HikCentral).
+- **Horas extra: pendiente.** Arsa 2 trabaja una hora más que Arsa 1 de lunes a viernes; no sabemos si se paga
+  como extra. El cálculo ya guarda los minutos trabajados para poder agregarlo.
 
 ## Reportes
 

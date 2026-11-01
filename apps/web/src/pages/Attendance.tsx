@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { api } from '../api';
+import { KIND_SHORT, type AbsenceKind, type DaySchedule } from '../lib/schedules';
 
 interface Mark {
   time: string;
@@ -11,8 +13,18 @@ interface Row {
   code: string;
   name: string;
   marks: number;
+  siteId: number | null;
+  workedSiteId: number | null;
   in: Mark | null;
   out: Mark | null;
+  schedule: { id: number; name: string } | null;
+  expected: DaySchedule | null;
+  absences: { id: number; kind: AbsenceKind; note: string | null }[];
+  status: 'libre' | 'novedad' | 'ausente' | 'pendiente' | 'presente';
+  lateMin: number;
+  earlyMin: number;
+  missingOut: boolean;
+  workedMin: number;
 }
 
 interface Attendance {
@@ -23,13 +35,19 @@ interface Attendance {
 
 const today = () => new Date().toLocaleDateString('sv'); // AAAA-MM-DD en hora local
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+const dur = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}` : `${min} min`);
 
-/** Asistencia de un día: quién entró y salió, y quién no marcó. */
+/** Asistencia de un día: quién vino (y si llegó tarde o se fue antes), quién faltó y quién estaba justificado. */
 export function AttendancePage() {
   const [date, setDate] = useState(today());
   const [data, setData] = useState<Attendance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sites, setSites] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    api<{ id: number; name: string }[]>('/sites').then(setSites).catch(() => {});
+  }, []);
 
   const load = (d = date) =>
     api<Attendance>(`/attendance?date=${d}`)
@@ -50,8 +68,14 @@ export function AttendancePage() {
     setBusy(false);
   }
 
-  const present = data?.employees.filter((e) => e.in) ?? [];
-  const absent = data?.employees.filter((e) => !e.in) ?? [];
+  const by = (s: Row['status']) => data?.employees.filter((e) => e.status === s) ?? [];
+  const present = by('presente');
+  const absent = by('ausente');
+  const justified = by('novedad');
+  const pending = by('pendiente');
+  const off = by('libre');
+  const late = present.filter((e) => e.lateMin > 0).length;
+  const expectedCount = (data?.employees.length ?? 0) - off.length;
 
   return (
     <section>
@@ -65,7 +89,9 @@ export function AttendancePage() {
       {error && <p className="error">{error}</p>}
       {data && (
         <p className="muted small">
-          {present.length} de {data.employees.length} marcaron
+          {present.length} de {expectedCount} vinieron
+          {late > 0 && ` · ${late} tarde`}
+          {absent.length > 0 && ` · ${absent.length} faltaron`}
           {data.syncedUntil ? ` · leído de los equipos a las ${hhmm(data.syncedUntil)}` : ' · todavía no se leyeron los equipos'}
         </p>
       )}
@@ -75,12 +101,33 @@ export function AttendancePage() {
           <li key={e.employeeId} className="card attendance">
             <div className="grow">
               <strong>{e.name}</strong>
-              {e.marks > 2 && <div className="muted small">{e.marks} marcaciones</div>}
+              <div className="badges">
+                {e.lateMin > 0 && <span className="badge bad">Llegó {dur(e.lateMin)} tarde</span>}
+                {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
+                {e.missingOut && <span className="badge warn-bg">Sin salida</span>}
+                {e.absences.map((a) => (
+                  <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
+                    {KIND_SHORT[a.kind]}
+                  </span>
+                ))}
+                {e.workedSiteId !== e.siteId && (
+                  <span className="badge">En {sites.find((s) => s.id === e.workedSiteId)?.name ?? 'otra sucursal'}</span>
+                )}
+                {e.marks > 2 && <span className="muted small">{e.marks} marcas</span>}
+              </div>
             </div>
-            <div className="times">
-              <span title={e.in?.device}>{hhmm(e.in!.time)}</span>
-              <span className="muted">→</span>
-              <span title={e.out?.device}>{e.out ? hhmm(e.out.time) : <span className="warn">sin salida</span>}</span>
+            <div className="times-col">
+              <div className="times">
+                <span title={e.in?.device}>{hhmm(e.in!.time)}</span>
+                <span className="muted">→</span>
+                <span title={e.out?.device}>{e.out ? hhmm(e.out.time) : '–'}</span>
+              </div>
+              {e.expected && (
+                <div className="muted small">
+                  {e.expected.start}–{e.expected.end}
+                  {e.workedMin > 0 && ` · ${dur(e.workedMin)}`}
+                </div>
+              )}
             </div>
           </li>
         ))}
@@ -88,15 +135,65 @@ export function AttendancePage() {
 
       {absent.length > 0 && (
         <>
-          <h2>No marcaron</h2>
+          <h2>Faltaron</h2>
           <ul className="list compact">
             {absent.map((e) => (
-              <li key={e.employeeId} className="card attendance muted">
-                {e.name}
+              <li key={e.employeeId} className="card attendance">
+                <div className="grow">
+                  <strong>{e.name}</strong>
+                  <div className="muted small">
+                    Entraba {e.expected?.start}
+                    {e.absences.map((a) => ` · ${KIND_SHORT[a.kind]}`)}
+                  </div>
+                </div>
+                <Link className="button secondary small-btn" to={`/novedades?empleado=${e.employeeId}&fecha=${date}`}>
+                  Justificar
+                </Link>
               </li>
             ))}
           </ul>
         </>
+      )}
+
+      {pending.length > 0 && (
+        <>
+          <h2>Todavía no llegaron</h2>
+          <ul className="list compact">
+            {pending.map((e) => (
+              <li key={e.employeeId} className="card attendance muted">
+                {e.name}
+                <span className="small">entra {e.expected?.start}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {justified.length > 0 && (
+        <>
+          <h2>Con novedad</h2>
+          <ul className="list compact">
+            {justified.map((e) => (
+              <li key={e.employeeId} className="card attendance">
+                <span className="grow">{e.name}</span>
+                <span className="badges">
+                  {e.absences.map((a) => (
+                    <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
+                      {KIND_SHORT[a.kind]}
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {off.length > 0 && (
+        <p className="muted small">
+          No les tocaba trabajar: {off.map((e) => e.name).join(' · ')}
+          {off.some((e) => !e.schedule) && '. Los que no tienen horario se configuran en Horarios.'}
+        </p>
       )}
 
       {data && data.unknownCodes.length > 0 && (

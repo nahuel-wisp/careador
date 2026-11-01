@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../api';
 import { prepareFaceJpeg } from '../lib/image';
+import { today, type Assignment, type Schedule } from '../lib/schedules';
 
 interface DeviceState {
   deviceId: number;
@@ -25,6 +26,7 @@ interface Employee {
 interface Site {
   id: number;
   name: string;
+  scheduleId: number | null;
 }
 
 interface Device {
@@ -36,6 +38,8 @@ export function PersonalPage() {
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Employee | 'nuevo' | null>(null);
   const [filter, setFilter] = useState('');
@@ -43,11 +47,19 @@ export function PersonalPage() {
   const [syncing, setSyncing] = useState(false);
 
   const load = () =>
-    Promise.all([api<Employee[]>('/employees'), api<Site[]>('/sites'), api<Device[]>('/devices')])
-      .then(([e, s, d]) => {
+    Promise.all([
+      api<Employee[]>('/employees'),
+      api<Site[]>('/sites'),
+      api<Device[]>('/devices'),
+      api<Schedule[]>('/schedules'),
+      api<Assignment[]>('/schedule-assignments'),
+    ])
+      .then(([e, s, d, sc, a]) => {
         setEmployees(e);
         setSites(s);
         setDevices(d);
+        setSchedules(sc);
+        setAssignments(a);
       })
       .catch((e: Error) => setError(e.message));
 
@@ -75,6 +87,8 @@ export function PersonalPage() {
         employee={editing === 'nuevo' ? null : editing}
         sites={sites}
         devices={devices}
+        schedules={schedules}
+        ownSchedule={editing === 'nuevo' ? null : ownSchedule(assignments, editing.id)}
         onDone={() => {
           setEditing(null);
           load();
@@ -170,15 +184,25 @@ function SyncLine({ employee, devices }: { employee: Employee; devices: Device[]
   return <div className="ok small">✓ Cargado en {synced.length === 1 ? 'el equipo' : `los ${synced.length} equipos`}</div>;
 }
 
+/** Horario propio vigente hoy (null = usa el de la sucursal). */
+function ownSchedule(assignments: Assignment[], employeeId: number) {
+  const t = today();
+  return assignments.find((a) => a.employeeId === employeeId && a.validFrom <= t && (!a.validTo || a.validTo >= t))?.scheduleId ?? null;
+}
+
 function EmployeeForm({
   employee,
   sites,
   devices,
+  schedules,
+  ownSchedule,
   onDone,
 }: {
   employee: Employee | null;
   sites: Site[];
   devices: Device[];
+  schedules: Schedule[];
+  ownSchedule: number | null;
   onDone(): void;
 }) {
   const [f, setF] = useState({
@@ -187,6 +211,7 @@ function EmployeeForm({
     documentNumber: employee?.documentNumber ?? '',
     siteId: String(employee?.siteId ?? sites[0]?.id ?? ''),
     code: '',
+    scheduleId: String(ownSchedule ?? ''),
   });
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -225,6 +250,12 @@ function EmployeeForm({
             method: 'POST',
             body: JSON.stringify({ ...body, ...(f.code.trim() ? { code: f.code.trim() } : {}) }),
           });
+      if (f.scheduleId !== String(ownSchedule ?? '')) {
+        await api(`/employees/${saved.id}/schedule`, {
+          method: 'PUT',
+          body: JSON.stringify({ scheduleId: f.scheduleId ? Number(f.scheduleId) : null }),
+        });
+      }
       if (photo) {
         await api(`/employees/${saved.id}/face`, { method: 'PUT', body: photo, headers: { 'Content-Type': 'image/jpeg' } });
       }
@@ -296,6 +327,26 @@ function EmployeeForm({
             Sucursal
             <select value={f.siteId} onChange={set('siteId')}>
               {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {schedules.length > 0 && (
+          <label>
+            Horario
+            <select value={f.scheduleId} onChange={set('scheduleId')}>
+              <option value="">
+                El de la sucursal
+                {(() => {
+                  const id = sites.find((s) => String(s.id) === f.siteId)?.scheduleId;
+                  const name = schedules.find((s) => s.id === id)?.name;
+                  return name ? ` (${name})` : ' (sin horario)';
+                })()}
+              </option>
+              {schedules.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>

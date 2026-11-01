@@ -1,17 +1,19 @@
 import { NavLink, Route, Routes } from 'react-router';
 import { useAuth } from './auth';
 import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
+import { AbsencesPage } from './pages/Absences';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { LoginPage } from './pages/Login';
 import { PersonalPage } from './pages/Personal';
+import { SchedulesPage } from './pages/Schedules';
 import { SimulatorPage } from './pages/Simulator';
-import { Placeholder } from './pages/Placeholder';
 
 const tabs = [
   { to: '/', label: 'Personal', icon: '👤' },
-  { to: '/horarios', label: 'Horarios', icon: '🕒' },
   { to: '/asistencia', label: 'Asistencia', icon: '📋' },
+  { to: '/novedades', label: 'Novedades', icon: '🗓️' },
+  { to: '/horarios', label: 'Horarios', icon: '🕒' },
   { to: '/equipos', label: 'Equipos', icon: '📟' },
 ];
 
@@ -34,7 +36,8 @@ export function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<PersonalPage />} />
-          <Route path="/horarios" element={<Placeholder title="Horarios" text="Turnos por sucursal y por empleado." />} />
+          <Route path="/horarios" element={<SchedulesPage />} />
+          <Route path="/novedades" element={<AbsencesPage />} />
           <Route path="/asistencia" element={<AttendancePage />} />
           <Route path="/equipos" element={<DevicesPage />} />
           <Route path="/simulador/:id" element={<SimulatorPage />} />
