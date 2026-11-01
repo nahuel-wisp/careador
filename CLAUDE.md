@@ -101,15 +101,18 @@ Hecho:
   Pantalla `/historial` (desde Reportes) y el historial del día en el detalle de Asistencia.
 - Novedad **«Horario especial»**: otra entrada/salida para esos días (reemplaza al horario).
 
-Pendiente, en orden:
-1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY). Lectores:
-   port-forward por IP Cloud `:1082` (Arsa 1 `cc230e7e1e6e.sn.mynetname.net`, Arsa 2 `d5030cc700bd...`);
-   falta filtrar el origen a 181.191.64.9 (salida de la VM) y, más adelante, WireGuard. Cargarlos con
-   `deploy/vm/04-lectores.sh` (quedan en sólo lectura también en producción hasta comparar con HikCentral).
-2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
-3. Cargar los horarios de Arsa en producción (relevados de HikCentral, `docs/contexto.md`).
-4. Comparar lo que traen los lectores con HikCentral y, si coincide, pasar los lectores de producción a
-   lectura/escritura (hoy `read_only = 1`).
+Pendiente, en orden (01/11):
+1. **Prueba de escritura**: en producción, Equipos → Editar un lector → sacar «Sólo lectura»; Nahuel se da de
+   alta con foto desde la app y prueba que lo reconozca. Valida `upsertPerson`/`setFace` contra el equipo real.
+2. **Dejar de cargar personas en HikCentral** y pasar los dos lectores de producción a lectura/escritura
+   (si cargan los dos se pisan). HikCentral queda sólo de consulta hasta apagarlo.
+3. Usuarios de los dueños en producción (`usuario:crear … manager`). Pendiente en la app: que `manager` no
+   pueda tocar Equipos, cambio de contraseña en el primer login y desactivar usuarios.
+4. Red: filtrar el port-forward `:1082` a la IP de salida 181.191.64.9 (probar desde otra IP); cerrar o
+   filtrar HikCentral publicado en `190.18.165.32:1080` por HTTP; más adelante WireGuard.
+5. Historial anterior a septiembre: exportar de HikCentral «Registros de entradas y salidas» e importarlo
+   (Asistencia → Subir Excel). Feriados 2026 en Novedades.
+6. Revisar con Arsa: horas extra (¿la hora de más de Arsa 2?), si los sábados rotan, y el PDF impreso.
 
 Más adelante: horas extra (¿la hora de más de Arsa 2 vs Arsa 1 es extra?; ver cómo lo liquida Arsa),
 rotativos.
