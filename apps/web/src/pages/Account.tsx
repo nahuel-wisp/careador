@@ -96,6 +96,9 @@ export function AccountPage() {
           <Link className="button secondary" to="/historial">
             Historial de cambios
           </Link>
+          <Link className="button secondary" to="/importar">
+            Importar historial de HikCentral
+          </Link>
         </div>
       )}
       <ChangePassword />

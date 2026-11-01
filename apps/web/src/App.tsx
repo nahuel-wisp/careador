@@ -6,6 +6,7 @@ import { AccountPage, ForcedPasswordPage } from './pages/Account';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { HistoryPage } from './pages/History';
+import { ImportPage } from './pages/Import';
 import { LoginPage } from './pages/Login';
 import { PersonalPage } from './pages/Personal';
 import { ReportsPage } from './pages/Reports';
@@ -51,6 +52,7 @@ export function App() {
           <Route path="/cuenta" element={<AccountPage />} />
           {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
           {isAdmin && <Route path="/usuarios" element={<UsersPage />} />}
+          {isAdmin && <Route path="/importar" element={<ImportPage />} />}
           {isAdmin && <Route path="/simulador/:id" element={<SimulatorPage />} />}
         </Routes>
       </main>

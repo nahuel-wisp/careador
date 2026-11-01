@@ -49,13 +49,15 @@ const PUBLIC_API = new Set(['/api/health', '/api/auth/login']);
 const WHILE_MUST_CHANGE = new Set(['/api/auth/me', '/api/auth/logout', '/api/auth/password', '/api/entorno']);
 
 /**
- * Lo que sólo puede hacer un administrador: equipos (salvo verlos), sucursales nuevas, usuarios y simulador.
+ * Lo que sólo puede hacer un administrador: equipos (salvo verlos), sucursales nuevas, usuarios, importar el
+ * historial de HikCentral y el simulador.
  * Los encargados (`manager`, los dueños) usan Personal, Asistencia, Novedades, Horarios y Reportes.
  */
 function adminOnly(method: string, path: string) {
   return (
     path.startsWith('/api/users') ||
     path.startsWith('/api/simulador') ||
+    path.startsWith('/api/history') ||
     (path.startsWith('/api/devices') && method !== 'GET') ||
     (path === '/api/sites' && method === 'POST')
   );

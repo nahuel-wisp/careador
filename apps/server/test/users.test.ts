@@ -47,6 +47,7 @@ describe('usuarios, roles y contraseña provisoria', () => {
     expect((await ana$('PATCH', '/api/devices/1', { readOnly: false })).statusCode).toBe(403);
     expect((await ana$('GET', '/api/users')).statusCode).toBe(403);
     expect((await ana$('POST', '/api/sites', { name: 'Otra' })).statusCode).toBe(403);
+    expect((await ana$('POST', '/api/history/hikcentral')).statusCode).toBe(403);
     expect((await ana$('GET', '/api/reports?from=2026-10-01&to=2026-10-02')).statusCode).toBe(200);
     expect((await ana$('POST', '/api/absences', { employeeId: null, kind: 'feriado', dateFrom: '2026-11-20', dateTo: '2026-11-20' })).statusCode).toBe(201);
   });
