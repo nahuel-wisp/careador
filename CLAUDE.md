@@ -58,8 +58,15 @@ Principios que no hay que romper:
 ## Estado (actualizar al avanzar)
 
 Hecho:
-- Driver Hikvision ISAPI (Digest, personas, caras, eventos, hora, puerta). **Sin probar contra el
-  equipo real**: endpoints y códigos de evento salen de la documentación ISAPI; validar con V3.9.2.
+- Driver Hikvision ISAPI (Digest, personas, caras, eventos, hora, puerta). **Validado contra los
+  DS-K1T321MFWX reales (V3.9.2, 01/11)**: conexión, 17 personas, búsqueda de caras y marcaciones; los días
+  28–30/09 coinciden al minuto con el Excel de HikCentral (31 de 32; el otro es una marca a las 07:53 que
+  HikCentral ignora por estar fuera de su ventana de entrada). Notas:
+  - **Los lectores no guardan la foto**, sólo el modelo facial (`faceURL` da 404 «Can't locate document»):
+    las fotos de los que cargó HikCentral hay que sacarlas de HikCentral o volver a tomarlas en la app.
+  - El nombre en el lector es «Nombre Apellido» (como lo carga HikCentral).
+  - Por IP Cloud el Lector Arsa 1 corta pedidos largos: las marcaciones se leen de a un día.
+  - `equipo:isapi <id> GET|POST <ruta>` (CLI) para diagnosticar contra el equipo, sólo lectura.
 - Lector simulado con pantalla web (`/simulador/:id`) y modo sólo lectura.
 - Login (cookie de sesión 60 días, scrypt, rate limit, chequeo de origen) y CLI de usuarios.
 - Alta/baja de sucursales y equipos desde la app; prueba de conexión.
