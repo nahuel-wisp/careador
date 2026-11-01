@@ -87,6 +87,25 @@ Conceptos:
 - **Horas extra**: reglas opcionales (desactivadas por defecto).
 - **Excepciones**: feriados, licencias, ausencias justificadas (a futuro).
 
+### Horarios actuales en HikCentral (relevado el 01/11/2026)
+
+HikCentral Access Control (versión gratis) en un Windows de Arsa. Nombres y legajos en
+`docs/ejemplos/privado/hikcentral-arsa.md`.
+
+| Horario | Trabajo | Entrada válida | Salida válida | Almuerzo |
+|---|---|---|---|---|
+| Lun-Vie Arsa 1 | 09:00–18:00 | 08:30–09:30 | 17:30–18:30 | 13:00–14:00, **cuenta como trabajado** |
+| Lun-Vie Arsa 2 | 08:00–18:00 | 07:30–08:30 | 17:30–18:30 | 13:00–14:00, **cuenta como trabajado** |
+| Sábados | 09:00–13:00 | 08:30–09:30 | 12:30–13:30 | — |
+
+- Todos: **tolerancia 15 min** de llegada tarde y 15 min de salida anticipada; sin horas extra.
+- Turnos semanales: **Arsa 1** = L-V «Lun-Vie Arsa 1» + sáb «Sábados»; **Arsa 2** = L-V «Lun-Vie Arsa 2» + sáb «Sábados».
+  Domingo no se trabaja.
+- Asignación por departamento (= sucursal): Arsa 1 → turno Arsa 1, Arsa 2 → turno Arsa 2 (vigentes).
+  Hay 3 personas fuera de los departamentos, sin horario (¿dueños/administración?).
+- Regla global: cálculo por **primera entrada y última salida**; sin marca de entrada o de salida = **ausente**;
+  llegar tarde o salir antes no cuenta como ausente. No hay grupos de asistencia ni aprobaciones cargadas.
+
 ## Reportes
 
 - Excel mensual (o por rango de fechas) por sucursal / empleado.

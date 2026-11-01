@@ -78,7 +78,10 @@ Pendiente, en orden:
 4. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
    (`docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`) + hoja "Resumen" por empleado.
 
+Pedido de Nahuel (01/11): marcar vacaciones, francos, licencias y permisos de llegada tarde, y guardar
+certificados médicos u otros justificativos de inasistencias. Va con Horarios.
+
 Preguntas abiertas al cliente:
-- Horarios oficiales: Arsa 1 ~L-V 9–18, sáb 9–13; Arsa 2 mayoría 8–18, algunos 9–18 u 8–17,
-  sáb 9–13 (no todos). ¿Tolerancia? ¿Se descuenta almuerzo y cuánto? ¿Sábados rotan?
+- Horarios: relevados de HikCentral (`docs/contexto.md`, «Horarios actuales en HikCentral»): tolerancia 15 min,
+  almuerzo 13–14 cuenta como trabajado. Falta confirmar si los sábados rotan y los casos 9–18 / 8–17 en Arsa 2.
 - En el Excel de septiembre aparecen 11 empleados, no 20: ¿bajas o gente que no marca?
