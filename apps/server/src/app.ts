@@ -15,6 +15,7 @@ import { attendanceRoutes } from './routes/attendance';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
 import { employeeRoutes } from './routes/employees';
+import { feedbackRoutes } from './routes/feedback';
 import { markRoutes } from './routes/marks';
 import { scheduleRoutes } from './routes/schedules';
 import { simulatorRoutes } from './routes/simulator';
@@ -93,6 +94,7 @@ export async function buildApp(config: Config) {
   await markRoutes(app, ctx);
   await simulatorRoutes(app, ctx);
   await userRoutes(app, ctx);
+  await feedbackRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).
   const webDist = resolve(config.WEB_DIST ?? '../web/dist');

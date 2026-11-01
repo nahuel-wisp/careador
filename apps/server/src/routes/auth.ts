@@ -21,6 +21,8 @@ export interface SessionUser {
   role: 'admin' | 'manager';
   /** Tiene contraseña provisoria: sólo puede cambiarla (o salir). */
   mustChangePassword: boolean;
+  phone: string | null;
+  contactEmail: string | null;
 }
 
 declare module 'fastify' {
@@ -49,7 +51,7 @@ const PUBLIC_API = new Set(['/api/health', '/api/auth/login']);
 const WHILE_MUST_CHANGE = new Set(['/api/auth/me', '/api/auth/logout', '/api/auth/password', '/api/entorno']);
 
 /**
- * Lo que sólo puede hacer un administrador: equipos (salvo verlos), sucursales nuevas, usuarios, importar el
+ * Lo que sólo puede hacer un administrador: equipos (salvo verlos), usuarios, importar el
  * historial de HikCentral y el simulador.
  * Los operadores (`manager`) usan Personal, Asistencia, Novedades, Horarios y Reportes.
  */
@@ -58,8 +60,9 @@ function adminOnly(method: string, path: string) {
     path.startsWith('/api/users') ||
     path.startsWith('/api/simulador') ||
     path.startsWith('/api/history') ||
-    (path.startsWith('/api/devices') && method !== 'GET') ||
-    (path === '/api/sites' && method === 'POST')
+    (path === '/api/feedback' && method === 'GET') ||
+    (path.startsWith('/api/feedback/') && method === 'PATCH') ||
+    (path.startsWith('/api/devices') && method !== 'GET')
   );
 }
 
@@ -71,6 +74,8 @@ export const sessionUser = (u: typeof appUsers.$inferSelect): SessionUser => ({
   name: u.name,
   role: u.role,
   mustChangePassword: u.mustChangePassword,
+  phone: u.phone,
+  contactEmail: u.contactEmail,
 });
 
 const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -171,6 +176,25 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.get('/api/auth/me', async (req) => req.user);
+
+  /** Datos personales y de contacto propios. */
+  app.patch('/api/auth/me', async (req) => {
+    const b = z
+      .object({
+        name: z.string().trim().min(1).max(80),
+        phone: z.string().trim().max(30).nullable(),
+        contactEmail: z.union([z.string().trim().toLowerCase().email('Email inválido'), z.literal('')]).nullable(),
+      })
+      .partial()
+      .parse(req.body);
+    const [u] = db
+      .update(appUsers)
+      .set({ ...b, contactEmail: b.contactEmail === '' ? null : b.contactEmail, updatedAt: new Date() })
+      .where(eq(appUsers.id, req.user!.id))
+      .returning()
+      .all();
+    return sessionUser(u!);
+  });
 
   /** Cambiar la propia contraseña (obligatorio si era provisoria). Cierra las otras sesiones. */
   app.post(

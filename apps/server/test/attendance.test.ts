@@ -84,6 +84,16 @@ describe('marcaciones y asistencia del día', () => {
     };
     let by = await get();
     expect(by('1')).toMatchObject({ status: 'presente', lateMin: 0, earlyMin: 0, schedule: { name: 'Arsa 2' }, workedMin: 550, workedSiteId: site.id });
+
+    // Almuerzo 13 a 14 que se descuenta: Ana trabajó 60 minutos menos.
+    await inject('PUT', `/api/schedules/${sucursal.id}`, { name: 'Arsa 2', days: nueveASeis, lunch: { start: '13:00', end: '14:00' }, lunchDeducted: true });
+    expect((await get())('1')).toMatchObject({ workedMin: 490, lunch: { start: '13:00', end: '14:00' } });
+    // Con almuerzo propio de 13:30 a 14:00 se descuenta media hora.
+    await t.app.inject({ method: 'PATCH', url: `/api/employees/${id('1')}`, headers: t.headers, payload: { lunch: { start: '13:30', end: '14:00' } } });
+    expect((await get())('1')).toMatchObject({ workedMin: 520 });
+    await t.app.inject({ method: 'PATCH', url: `/api/employees/${id('1')}`, headers: t.headers, payload: { lunch: null } });
+    await inject('PUT', `/api/schedules/${sucursal.id}`, { name: 'Arsa 2', days: nueveASeis });
+    by = await get();
     // Beto marcó una sola vez: a revisar, sin calcular tardanza.
     expect(by('2')).toMatchObject({ status: 'presente', lateMin: 0, missingOut: true, review: true, schedule: { name: 'Temprano' } });
     expect(by('3')).toMatchObject({ status: 'ausente' });

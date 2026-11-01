@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../app';
-import { devices, events, sites } from '../db/schema';
+import { devices, employees, events, sites } from '../db/schema';
 import { driverFor, isReadOnly } from '../lib/devices';
 
 const deviceInput = z.object({
@@ -19,8 +19,12 @@ const deviceInput = z.object({
 });
 
 const siteInput = z.object({
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(60),
   timezone: z.string().default('America/Argentina/Buenos_Aires'),
+  address: z.string().trim().max(200).nullish(),
+  phone: z.string().trim().max(30).nullish(),
+  notes: z.string().trim().max(2000).nullish(),
+  scheduleId: z.number().int().positive().nullish(),
 });
 
 export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -49,6 +53,33 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
   }));
 
   app.get('/api/sites', async () => db.select().from(sites).all());
+
+  app.patch<{ Params: { id: string } }>('/api/sites/:id', async (req, reply) => {
+    const id = Number(req.params.id);
+    req.auditBefore = db.select().from(sites).where(eq(sites.id, id)).get();
+    if (!req.auditBefore) return reply.code(404).send({ error: 'Sucursal inexistente' });
+    const [row] = db
+      .update(sites)
+      .set({ ...siteInput.partial().parse(req.body), updatedAt: new Date() })
+      .where(eq(sites.id, id))
+      .returning()
+      .all();
+    return row;
+  });
+
+  /** Sólo se puede borrar una sucursal sin lectores ni personal. */
+  app.delete<{ Params: { id: string } }>('/api/sites/:id', async (req, reply) => {
+    const id = Number(req.params.id);
+    if (db.select({ id: devices.id }).from(devices).where(eq(devices.siteId, id)).get()) {
+      return reply.code(409).send({ error: 'La sucursal tiene lectores: pasalos a otra antes de borrarla' });
+    }
+    if (db.select({ id: employees.id }).from(employees).where(eq(employees.siteId, id)).get()) {
+      return reply.code(409).send({ error: 'La sucursal tiene personal: pasalo a otra antes de borrarla' });
+    }
+    req.auditBefore = db.select().from(sites).where(eq(sites.id, id)).get();
+    if (!db.delete(sites).where(eq(sites.id, id)).run().changes) return reply.code(404).send({ error: 'Sucursal inexistente' });
+    return { ok: true };
+  });
 
   app.post('/api/sites', async (req, reply) => {
     const input = siteInput.parse(req.body);

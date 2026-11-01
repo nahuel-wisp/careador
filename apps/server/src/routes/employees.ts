@@ -17,6 +17,14 @@ const employeeInput = z.object({
   lastName: z.string().trim().min(1).max(40),
   documentNumber: z.string().trim().max(20).nullish(),
   siteId: z.number().int().positive().nullish(),
+  position: z.string().trim().max(60).nullish(),
+  phone: z.string().trim().max(30).nullish(),
+  notes: z.string().trim().max(2000).nullish(),
+  /** Almuerzo propio (reemplaza al del horario); null = el del horario. */
+  lunch: z
+    .object({ start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora HH:MM'), end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora HH:MM') })
+    .refine((l) => l.start < l.end, 'El almuerzo tiene que terminar después de empezar')
+    .nullish(),
 });
 
 const employeePatch = employeeInput.omit({ code: true }).partial().extend({ active: z.boolean().optional() });

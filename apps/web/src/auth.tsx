@@ -8,6 +8,8 @@ export interface User {
   role: 'admin' | 'manager';
   /** Contraseña provisoria: la app sólo muestra el cambio de contraseña. */
   mustChangePassword: boolean;
+  phone: string | null;
+  contactEmail: string | null;
 }
 
 interface AuthState {

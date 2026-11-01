@@ -91,6 +91,14 @@ describe('personal y sincronización a los equipos', () => {
     expect((await sim(simA)).persons.find((p: { id: string }) => p.id === '500')).toMatchObject({ hasFace: true });
   });
 
+  it('ficha: cargo, teléfono y notas; una sucursal con lectores o personal no se borra', async () => {
+    const e = (await inject('POST', '/api/employees', { firstName: 'Carla', lastName: 'Ruiz', siteId, position: 'Vendedora', phone: '221 555-1234', notes: 'Turno tarde' })).json();
+    expect(e).toMatchObject({ position: 'Vendedora', phone: '221 555-1234', notes: 'Turno tarde' });
+    expect((await t.app.inject({ method: 'DELETE', url: `/api/sites/${siteId}`, headers: t.headers })).statusCode).toBe(409);
+    const vacia = (await inject('POST', '/api/sites', { name: 'Vacía' })).json();
+    expect((await t.app.inject({ method: 'DELETE', url: `/api/sites/${vacia.id}`, headers: t.headers })).statusCode).toBe(200);
+  });
+
   it('editar un equipo: sólo lectura, contraseña y no se puede quitar si tiene marcaciones', async () => {
     const patch = (body: object) => t.app.inject({ method: 'PATCH', url: `/api/devices/${simA}`, headers: t.headers, payload: body });
     expect((await patch({ readOnly: true })).json()).toMatchObject({ readOnly: true, effectiveReadOnly: true });

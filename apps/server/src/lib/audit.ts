@@ -69,6 +69,9 @@ const LABELS: Record<string, (b: Body) => string> = {
   'POST /api/absences/:id/files': () => 'Adjuntó un comprobante',
   'DELETE /api/absence-files/:id': () => 'Borró un comprobante',
   'POST /api/sites': (b) => `Creó la sucursal «${b.name}»`,
+  'PATCH /api/sites/:id': (b) => `Editó la sucursal${b.name ? ` «${b.name}»` : ''}`,
+  'DELETE /api/sites/:id': () => 'Borró una sucursal',
+  'PATCH /api/auth/me': () => 'Actualizó sus datos personales',
   'POST /api/devices': (b) => `Agregó el equipo «${b.name}» (${b.host})`,
   'DELETE /api/devices/:id': () => 'Borró un equipo',
   'PATCH /api/devices/:id': (b) =>

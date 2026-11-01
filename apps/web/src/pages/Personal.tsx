@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { api } from '../api';
 import { prepareFaceJpeg } from '../lib/image';
-import { today, type Assignment, type Schedule } from '../lib/schedules';
+import { whatsappUrl } from '../lib/phone';
+import { today, type Assignment, type DaySchedule, type Schedule } from '../lib/schedules';
+import { Camera, PageHeader, useVista } from '../ui';
 
 interface DeviceState {
   deviceId: number;
@@ -17,6 +20,10 @@ interface Employee {
   lastName: string;
   documentNumber: string | null;
   siteId: number | null;
+  position: string | null;
+  phone: string | null;
+  notes: string | null;
+  lunch: DaySchedule | null;
   active: boolean;
   hasFace: boolean;
   faceUpdatedAt: string | null;
@@ -34,18 +41,14 @@ interface Device {
   name: string;
 }
 
-export function PersonalPage() {
+/** Lo que usan la lista y la ficha. */
+function usePersonalData() {
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Employee | 'nuevo' | null>(null);
-  const [filter, setFilter] = useState('');
-  const [showBajas, setShowBajas] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
   const load = () =>
     Promise.all([
       api<Employee[]>('/employees'),
@@ -62,88 +65,121 @@ export function PersonalPage() {
         setAssignments(a);
       })
       .catch((e: Error) => setError(e.message));
-
   useEffect(() => {
     load();
   }, []);
+  return { employees, sites, devices, schedules, assignments, error, load };
+}
+
+export function PersonalPage() {
+  const navigate = useNavigate();
+  const [vista] = useVista();
+  const { employees, sites, devices, error, load } = usePersonalData();
+  const [filter, setFilter] = useState('');
+  const [showBajas, setShowBajas] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   async function syncNow() {
     setSyncing(true);
-    await api('/sync', { method: 'POST', body: '{}' }).catch((e: Error) => setError(e.message));
+    await api('/sync', { method: 'POST', body: '{}' }).catch(() => {});
     setSyncing(false);
     load();
   }
 
   const q = filter.trim().toLowerCase();
   const visible = (employees ?? []).filter(
-    (e) => e.active !== showBajas && (!q || `${e.lastName} ${e.firstName} ${e.code}`.toLowerCase().includes(q)),
+    (e) => e.active !== showBajas && (!q || `${e.lastName} ${e.firstName} ${e.code} ${e.position ?? ''}`.toLowerCase().includes(q)),
   );
-  const siteName = (id: number | null) => sites.find((s) => s.id === id)?.name;
+  const siteName = (id: number | null) => sites.find((s) => s.id === id)?.name ?? '';
   const bajas = employees?.filter((e) => !e.active).length ?? 0;
-
-  if (editing) {
-    return (
-      <EmployeeForm
-        employee={editing === 'nuevo' ? null : editing}
-        sites={sites}
-        devices={devices}
-        schedules={schedules}
-        ownSchedule={editing === 'nuevo' ? null : ownSchedule(assignments, editing.id)}
-        onDone={() => {
-          setEditing(null);
-          load();
-          setTimeout(load, 4000); // para ver cómo terminó el envío a los equipos
-        }}
-      />
-    );
-  }
+  const open = (e: Employee) => navigate(`/personal/${e.id}`);
 
   return (
     <section>
-      <div className="row">
-        <h1>Personal</h1>
-        <button onClick={() => setEditing('nuevo')}>Agregar</button>
-      </div>
+      <PageHeader crumbs={[{ label: 'Personal' }]}>
+        <button onClick={() => navigate('/personal/nuevo')}>Agregar</button>
+      </PageHeader>
       {error && <p className="error">{error}</p>}
-      <input
-        className="search"
-        type="search"
-        placeholder="Buscar por nombre o legajo"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-      />
-      {employees?.length === 0 && <p className="muted">Todavía no hay personal cargado.</p>}
-      <ul className="list">
-        {visible.map((e) => (
-          <li key={e.id}>
-            <button className="card person" onClick={() => setEditing(e)}>
-              <Face employee={e} size={52} />
-              <div className="grow">
-                <strong>
-                  {e.lastName}, {e.firstName}
-                </strong>
-                <div className="muted small">
-                  Legajo {e.code}
-                  {siteName(e.siteId) ? ` · ${siteName(e.siteId)}` : ''}
-                </div>
-                {e.active && <SyncLine employee={e} devices={devices} />}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="actions footer-actions">
+      <div className="toolbar">
+        <input type="search" placeholder="Buscar por nombre, legajo o cargo" value={filter} onChange={(e) => setFilter(e.target.value)} />
         {bajas > 0 && (
           <button className="link" onClick={() => setShowBajas(!showBajas)}>
             {showBajas ? 'Ver activos' : `Ver bajas: ${bajas}`}
           </button>
         )}
-        {devices.length > 0 && (
-          <button className="link" onClick={syncNow} disabled={syncing}>
-            {syncing ? 'Enviando a los equipos…' : 'Reenviar a los equipos'}
+        <span className="sep" />
+        {devices.length > 0 && vista === 'pc' && (
+          <button className="secondary small-btn" onClick={syncNow} disabled={syncing}>
+            {syncing ? 'Enviando…' : 'Reenviar a los equipos'}
           </button>
         )}
       </div>
+      {employees?.length === 0 && <p className="muted">Todavía no hay personal cargado.</p>}
+
+      {vista === 'celular' ? (
+        <ul className="list">
+          {visible.map((e) => (
+            <li key={e.id}>
+              <button className="card person" onClick={() => open(e)}>
+                <Face employee={e} size={48} />
+                <div className="grow">
+                  <strong>
+                    {e.lastName}, {e.firstName}
+                  </strong>
+                  <div className="muted small">
+                    Legajo {e.code}
+                    {siteName(e.siteId) && ` · ${siteName(e.siteId)}`}
+                  </div>
+                  {e.active && <SyncLine employee={e} devices={devices} />}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        visible.length > 0 && (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th />
+                  <th>Apellido y nombre</th>
+                  <th>Legajo</th>
+                  <th>Sucursal</th>
+                  <th>Cargo</th>
+                  <th>Teléfono</th>
+                  <th>Equipos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((e) => (
+                  <tr key={e.id} className="clickable" onClick={() => open(e)}>
+                    <td style={{ width: 44 }}>
+                      <Face employee={e} size={30} />
+                    </td>
+                    <td>
+                      <strong>
+                        {e.lastName}, {e.firstName}
+                      </strong>
+                    </td>
+                    <td>{e.code}</td>
+                    <td>{siteName(e.siteId)}</td>
+                    <td>{e.position}</td>
+                    <td className="nowrap" onClick={(ev) => ev.stopPropagation()}>
+                      {e.phone && (
+                        <a className="wa" href={whatsappUrl(e.phone)} target="_blank" rel="noreferrer" title="Abrir WhatsApp">
+                          {e.phone}
+                        </a>
+                      )}
+                    </td>
+                    <td>{e.active && <SyncLine employee={e} devices={devices} />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
     </section>
   );
 }
@@ -151,43 +187,58 @@ export function PersonalPage() {
 function Face({ employee, size }: { employee: Employee; size: number }) {
   if (!employee.hasFace) {
     return (
-      <div className="avatar" style={{ width: size, height: size }} aria-hidden>
+      <div className="avatar" style={{ width: size, height: size, fontSize: size / 2.6 }} aria-hidden>
         {employee.firstName[0]}
         {employee.lastName[0]}
       </div>
     );
   }
   return (
-    <img
-      className="avatar"
-      src={`/api/employees/${employee.id}/face?v=${employee.faceUpdatedAt}`}
-      alt=""
-      width={size}
-      height={size}
-    />
+    <img className="avatar" src={`/api/employees/${employee.id}/face?v=${employee.faceUpdatedAt}`} alt="" width={size} height={size} />
   );
 }
 
-/** Resumen de cómo está el empleado en los equipos. */
+/** Cómo está la persona en los equipos. */
 function SyncLine({ employee, devices }: { employee: Employee; devices: Device[] }) {
   const states = employee.devices;
   if (devices.length === 0) return null;
   const errors = states.filter((s) => s.status === 'error');
   if (errors.length) {
     const names = errors.map((s) => devices.find((d) => d.id === s.deviceId)?.name ?? `#${s.deviceId}`);
-    return <div className="error small">No se pudo cargar en {names.join(', ')}; se reintenta cada hora</div>;
+    return <span className="badge warn-bg" title={errors[0]?.lastError ?? ''}>Falta cargar en {names.join(', ')}</span>;
   }
   const synced = states.filter((s) => s.status === 'synced');
-  if (synced.length < devices.length) return <div className="muted small">Enviando a los equipos…</div>;
-  if (!employee.hasFace) return <div className="warn small">Sin foto: no va a poder marcar con la cara</div>;
-  if (synced.some((s) => !s.faceSynced)) return <div className="muted small">Enviando la foto…</div>;
-  return <div className="ok small">✓ Cargado en {synced.length === 1 ? 'el equipo' : `los ${synced.length} equipos`}</div>;
+  if (synced.length < devices.length) return <span className="badge">Enviando…</span>;
+  if (!employee.hasFace) return <span className="badge warn-bg">Sin foto</span>;
+  if (synced.some((s) => !s.faceSynced)) return <span className="badge">Enviando la foto…</span>;
+  return <span className="badge good">✓ En {synced.length === 1 ? 'el equipo' : `los ${synced.length} equipos`}</span>;
 }
 
 /** Horario propio vigente hoy (null = usa el de la sucursal). */
 function ownSchedule(assignments: Assignment[], employeeId: number) {
   const t = today();
   return assignments.find((a) => a.employeeId === employeeId && a.validFrom <= t && (!a.validTo || a.validTo >= t))?.scheduleId ?? null;
+}
+
+/** Ficha de una persona: /personal/:id (o /personal/nuevo). */
+export function EmployeePage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const data = usePersonalData();
+  if (!data.employees) return null;
+  const employee = id === 'nuevo' ? null : (data.employees.find((e) => String(e.id) === id) ?? null);
+  if (id !== 'nuevo' && !employee) return <p className="muted">No existe esa persona.</p>;
+  return (
+    <EmployeeForm
+      key={employee?.id ?? 'nuevo'}
+      employee={employee}
+      sites={data.sites}
+      devices={data.devices}
+      schedules={data.schedules}
+      ownSchedule={employee ? ownSchedule(data.assignments, employee.id) : null}
+      onDone={() => navigate('/personal')}
+    />
+  );
 }
 
 function EmployeeForm({
@@ -212,16 +263,24 @@ function EmployeeForm({
     siteId: employee ? String(employee.siteId ?? '') : String(sites[0]?.id ?? ''),
     code: '',
     scheduleId: String(ownSchedule ?? ''),
+    position: employee?.position ?? '',
+    phone: employee?.phone ?? '',
+    notes: employee?.notes ?? '',
+    ownLunch: !!employee?.lunch,
+    lunchStart: employee?.lunch?.start ?? '13:00',
+    lunchEnd: employee?.lunch?.end ?? '14:00',
   });
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [camera, setCamera] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
 
-  async function pickPhoto(file: File | undefined) {
+  async function pickPhoto(file: Blob | undefined) {
+    setCamera(false);
     if (!file) return;
     setError(null);
     try {
@@ -242,6 +301,10 @@ function EmployeeForm({
       lastName: f.lastName,
       documentNumber: f.documentNumber || null,
       siteId: f.siteId ? Number(f.siteId) : null,
+      position: f.position || null,
+      phone: f.phone || null,
+      notes: f.notes || null,
+      lunch: f.ownLunch ? { start: f.lunchStart, end: f.lunchEnd } : null,
     };
     try {
       const saved = employee
@@ -283,102 +346,129 @@ function EmployeeForm({
   }
 
   const currentFace = preview ?? (employee?.hasFace ? `/api/employees/${employee.id}/face?v=${employee.faceUpdatedAt}` : null);
+  const siteSchedule = schedules.find((s) => s.id === sites.find((x) => String(x.id) === f.siteId)?.scheduleId)?.name;
+  const title = employee ? `${employee.lastName}, ${employee.firstName}` : 'Nueva persona';
 
   return (
     <section>
-      <div className="row">
-        <h1>{employee ? `${employee.firstName} ${employee.lastName}` : 'Nuevo empleado'}</h1>
-      </div>
-      <form className="form card col wide" onSubmit={submit}>
-        <div className="photo-pick">
-          {currentFace ? (
-            <img src={currentFace} alt="Foto para el lector" className="photo" />
+      <PageHeader crumbs={[{ label: 'Personal', to: '/personal' }, { label: title }]}>
+        {employee && !employee.active && <span className="tag">Dado de baja</span>}
+      </PageHeader>
+      <form className="split" onSubmit={submit}>
+        <div className="panel photo-pick">
+          {camera ? (
+            <Camera onPhoto={pickPhoto} onClose={() => setCamera(false)} />
           ) : (
-            <div className="photo empty">Sin foto</div>
+            <>
+              {currentFace ? <img src={currentFace} alt="Foto para el lector" className="photo" /> : <div className="photo empty">Sin foto</div>}
+              <div className="actions" style={{ justifyContent: 'center' }}>
+                <button type="button" className="secondary small-btn" onClick={() => setCamera(true)}>
+                  Sacar foto
+                </button>
+                <label className="button small-btn">
+                  Subir foto
+                  <input type="file" accept="image/*" capture="user" hidden onChange={(e) => pickPhoto(e.target.files?.[0])} />
+                </label>
+              </div>
+            </>
           )}
-          <label className="button secondary">
-            {currentFace ? 'Cambiar foto' : 'Sacar foto'}
-            <input
-              type="file"
-              accept="image/*"
-              capture="user"
-              hidden
-              onChange={(e) => pickPhoto(e.target.files?.[0])}
-            />
-          </label>
-          <p className="muted small">
-            De frente, con buena luz, sin anteojos de sol ni gorra. La cara tiene que ocupar casi toda la foto.
-          </p>
+          <p className="muted small">De frente, con buena luz, sin anteojos de sol ni gorra. La cara tiene que ocupar casi toda la foto.</p>
         </div>
-        <label>
-          Nombre
-          <input value={f.firstName} onChange={set('firstName')} autoComplete="off" required />
-        </label>
-        <label>
-          Apellido
-          <input value={f.lastName} onChange={set('lastName')} autoComplete="off" required />
-        </label>
-        <label>
-          DNI
-          <input value={f.documentNumber} onChange={set('documentNumber')} inputMode="numeric" autoComplete="off" />
-        </label>
-        {sites.length > 0 && (
-          <label>
-            Sucursal
-            <select value={f.siteId} onChange={set('siteId')}>
-              <option value="">Sin sucursal</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {schedules.length > 0 && (
-          <label>
-            Horario
-            <select value={f.scheduleId} onChange={set('scheduleId')}>
-              <option value="">
-                El de la sucursal
-                {(() => {
-                  const id = sites.find((s) => String(s.id) === f.siteId)?.scheduleId;
-                  const name = schedules.find((s) => s.id === id)?.name;
-                  return name ? `: ${name}` : '';
-                })()}
-              </option>
-              {schedules.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {employee ? (
-          <p className="muted small">Legajo {employee.code}</p>
-        ) : (
-          <label>
-            Legajo
-            <input value={f.code} onChange={set('code')} placeholder="Siguiente número" autoCapitalize="none" autoComplete="off" />
-          </label>
-        )}
-        {devices.length === 0 && (
-          <p className="warn small">Todavía no hay equipos cargados: se va a enviar cuando agregues uno.</p>
-        )}
-        {error && <p className="error">{error}</p>}
-        <div className="actions">
-          <button type="submit" disabled={busy}>
-            {busy ? 'Guardando…' : 'Guardar'}
-          </button>
-          <button type="button" className="link" onClick={onDone}>
-            Cancelar
-          </button>
-          {employee && (
-            <button type="button" className={employee.active ? 'link danger' : 'link'} onClick={toggleActive} disabled={busy}>
-              {employee.active ? 'Dar de baja' : 'Volver a dar de alta'}
+
+        <div className="panel form wide">
+          <div className="form-grid">
+            <label>
+              Nombre
+              <input value={f.firstName} onChange={set('firstName')} autoComplete="off" required />
+            </label>
+            <label>
+              Apellido
+              <input value={f.lastName} onChange={set('lastName')} autoComplete="off" required />
+            </label>
+            {employee ? (
+              <label>
+                Legajo
+                <input value={employee.code} disabled />
+              </label>
+            ) : (
+              <label>
+                Legajo
+                <input value={f.code} onChange={set('code')} placeholder="Siguiente número" autoCapitalize="none" autoComplete="off" />
+              </label>
+            )}
+            <label>
+              DNI
+              <input value={f.documentNumber} onChange={set('documentNumber')} inputMode="numeric" autoComplete="off" />
+            </label>
+            <label>
+              Cargo
+              <input value={f.position} onChange={set('position')} placeholder="Vendedor, mecánico…" autoComplete="off" />
+            </label>
+            <label>
+              Teléfono
+              <input value={f.phone} onChange={set('phone')} inputMode="tel" placeholder="221 555-1234" autoComplete="off" />
+              {f.phone.replace(/\D/g, '').length >= 8 && (
+                <a className="wa small" href={whatsappUrl(f.phone)} target="_blank" rel="noreferrer">
+                  Abrir WhatsApp
+                </a>
+              )}
+            </label>
+            <label>
+              Sucursal
+              <select value={f.siteId} onChange={set('siteId')}>
+                <option value="">Sin sucursal</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Horario
+              <select value={f.scheduleId} onChange={set('scheduleId')}>
+                <option value="">{siteSchedule ? `El de la sucursal: ${siteSchedule}` : 'El de la sucursal'}</option>
+                {schedules.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="full">
+              <label className="check">
+                <input type="checkbox" checked={f.ownLunch} onChange={(e) => setF({ ...f, ownLunch: e.target.checked })} />
+                Almuerzo propio
+              </label>
+              {f.ownLunch && (
+                <div className="times-edit" style={{ marginTop: 6 }}>
+                  <input type="time" value={f.lunchStart} onChange={set('lunchStart')} aria-label="Empieza el almuerzo" required />
+                  <span className="muted">a</span>
+                  <input type="time" value={f.lunchEnd} onChange={set('lunchEnd')} aria-label="Termina el almuerzo" required />
+                </div>
+              )}
+            </div>
+            <label className="full">
+              Notas
+              <textarea value={f.notes} onChange={set('notes')} rows={4} />
+            </label>
+          </div>
+          {devices.length === 0 && <p className="warn small">Todavía no hay equipos: se va a enviar cuando se agregue uno.</p>}
+          {error && <p className="error">{error}</p>}
+          <div className="actions">
+            <button type="submit" disabled={busy}>
+              {busy ? 'Guardando…' : 'Guardar'}
             </button>
-          )}
+            <button type="button" className="link" onClick={onDone}>
+              Cancelar
+            </button>
+            <span className="grow" />
+            {employee && (
+              <button type="button" className={employee.active ? 'link danger' : 'link'} onClick={toggleActive} disabled={busy}>
+                {employee.active ? 'Dar de baja' : 'Volver a dar de alta'}
+              </button>
+            )}
+          </div>
         </div>
       </form>
     </section>

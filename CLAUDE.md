@@ -87,6 +87,13 @@ Hecho:
   la entrada** (el personal rota). Novedades (`absences`: vacaciones, franco, licencia, enfermedad, feriado
   para todos, permisos de llegada/salida) con comprobantes adjuntos (`absence_files`, foto o PDF).
   Cálculo en `lib/schedule.ts` (`evaluateDay`): presente/tarde/salida anticipada/sin salida/ausente/novedad/libre.
+- **Diseño (02/11)**: pensado para PC (menú arriba, barra de ubicación «Personal › Fulano», tablas compactas,
+  `apps/web/src/ui.tsx` con `PageHeader`, `useVista`, `Camera`). «Versión celular» (enlace arriba, se recuerda
+  en el navegador) deja sólo Personal y fotos. Foto con la cámara de la PC (`getUserMedia`, sólo https/localhost).
+- **Personal**: ficha en `/personal/:id` con cargo, teléfono (enlace a WhatsApp, `lib/phone.ts`), notas y
+  almuerzo propio. **Sucursales y horarios** (`/sucursales`): sucursales con dirección/teléfono/notas, horario y
+  lectores (cada lector en una sola sucursal; asignarlo lo mueve, sólo admin); horarios con almuerzo y
+  «se descuenta». **Mi cuenta**: datos personales y de contacto. **Sugerencias** (arriba, todos) → Admin → Bandeja.
 - **Historial de HikCentral**: Admin → Importar historial sube el informe «Registros de
   entradas y salidas» (`lib/history.ts`). Trae primera/última marca por día, sin legajo: se vincula por nombre
   (sin acentos ni orden) y lo que no coincide queda con `person_name` hasta que el empleado exista.

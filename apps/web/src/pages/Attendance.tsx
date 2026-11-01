@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../api';
 import { KIND_SHORT, shortDate, type AbsenceKind, type DaySchedule } from '../lib/schedules';
+import { PageHeader } from '../ui';
 
 interface Mark {
   id: number;
@@ -55,14 +56,16 @@ const today = () => new Date().toLocaleDateString('sv'); // AAAA-MM-DD en hora l
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
 const dur = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}` : `${min} min`);
 
-/** Asistencia de un día: quién vino (y si llegó tarde o se fue antes), quién faltó y quién estaba justificado. */
+/** Asistencia de un día, en una tabla: quién vino y a qué hora, quién llegó tarde, faltó o tenía novedad. */
 export function AttendancePage() {
-  const [date, setDate] = useState(today());
+  const [params, setParams] = useSearchParams();
+  const date = params.get('fecha') ?? today();
+  const detail = params.get('persona');
   const [data, setData] = useState<Attendance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sites, setSites] = useState<{ id: number; name: string }[]>([]);
-  const [detail, setDetail] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api<{ id: number; name: string }[]>('/sites').then(setSites).catch(() => {});
@@ -87,157 +90,120 @@ export function AttendancePage() {
     setBusy(false);
   }
 
-  const by = (s: Row['status']) => data?.employees.filter((e) => e.status === s) ?? [];
-  const present = by('presente');
-  const absent = by('ausente');
-  const justified = by('novedad');
-  const pending = by('pendiente');
-  const off = by('libre');
-  // Los que no tienen horario, como los dueños, no se controlan: no se listan.
-  const dayOff = off.filter((e) => e.schedule);
-  const late = present.filter((e) => e.lateMin > 0).length;
-  const expectedCount = (data?.employees.length ?? 0) - off.length;
-  const toReview = present.filter((e) => e.review).length;
-  const open = data?.employees.find((e) => e.employeeId === detail);
+  const setDate = (d: string) => setParams(d === today() ? {} : { fecha: d });
+  const openPerson = (id: number) => setParams({ fecha: date, persona: String(id) });
+  const open = data?.employees.find((e) => String(e.employeeId) === detail);
 
   if (open) {
-    return <DayDetail row={open} date={date} onChange={() => load()} onClose={() => setDetail(null)} />;
+    return <DayDetail row={open} date={date} onChange={() => load()} />;
   }
+
+  // Los que no tienen horario ni marcaron (los dueños) y los que tenían el día libre no se listan.
+  const rows = (data?.employees ?? []).filter((e) => e.status !== 'libre' || e.marks > 0);
+  const order: Record<Row['status'], number> = { ausente: 0, presente: 1, pendiente: 2, novedad: 3, libre: 4 };
+  rows.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name, 'es'));
+  const present = rows.filter((e) => e.status === 'presente');
+  const absent = rows.filter((e) => e.status === 'ausente').length;
+  const late = present.filter((e) => e.lateMin > 0).length;
+  const toReview = present.filter((e) => e.review).length;
+  const siteName = (id: number | null) => sites.find((s) => s.id === id)?.name ?? '';
 
   return (
     <section>
-      <div className="row">
-        <h1>Asistencia</h1>
+      <PageHeader crumbs={[{ label: 'Asistencia' }]}>
+        <input type="date" value={date} max={today()} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Día" />
         <button className="secondary" onClick={refresh} disabled={busy}>
           {busy ? 'Leyendo…' : 'Actualizar'}
         </button>
-      </div>
-      <input type="date" className="search" value={date} max={today()} onChange={(e) => e.target.value && setDate(e.target.value)} />
+      </PageHeader>
       {error && <p className="error">{error}</p>}
       {data && (
-        <p className="muted small">
-          {present.length} de {expectedCount} vinieron
-          {late > 0 && ` · ${late} tarde`}
-          {absent.length > 0 && ` · ${absent.length} faltaron`}
-          {toReview > 0 && ` · ${toReview} a revisar`}
-          {data.syncedUntil ? ` · leído de los equipos a las ${hhmm(data.syncedUntil)}` : ' · todavía no se leyeron los equipos'}
-        </p>
+        <div className="kpis">
+          <span>
+            <b>{present.length}</b>vinieron
+          </span>
+          <span className={late ? 'bad' : ''}>
+            <b>{late}</b>tarde
+          </span>
+          <span className={absent ? 'bad' : ''}>
+            <b>{absent}</b>faltaron
+          </span>
+          <span className={toReview ? 'warn' : ''}>
+            <b>{toReview}</b>a revisar
+          </span>
+          <span className="muted small">
+            {data.syncedUntil ? `Leído de los equipos a las ${hhmm(data.syncedUntil)}` : 'Todavía no se leyeron los equipos'}
+          </span>
+        </div>
       )}
 
-      <ul className="list compact">
-        {present.map((e) => (
-          <li key={e.employeeId} className="card attendance clickable" onClick={() => setDetail(e.employeeId)}>
-            <div className="grow">
-              <strong>{e.name}</strong>
-              <div className="badges">
-                {e.lateMin > 0 && <span className="badge bad">Llegó {dur(e.lateMin)} tarde</span>}
-                {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
-                {e.review && <span className="badge warn-bg">A revisar: {e.in ? 'sin salida' : 'sin entrada'}</span>}
-                {!e.review && e.missingOut && <span className="badge warn-bg">Sin salida</span>}
-                {(e.manualMarks.length > 0 || e.voidedMarks.length > 0) && <span className="badge warn-bg">✎ Corregido a mano</span>}
-                {e.absences.map((a) => (
-                  <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
-                    {KIND_SHORT[a.kind]}
-                  </span>
-                ))}
-                {e.workedSiteId !== e.siteId && (
-                  <span className="badge">En {sites.find((s) => s.id === e.workedSiteId)?.name ?? 'otra sucursal'}</span>
-                )}
-                {e.otherMarks.length > 0 && (
-                  <span className="muted small">
-                    +{e.otherMarks.length} {e.otherMarks.length === 1 ? 'marca' : 'marcas'} en el día
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="times-col">
-              <div className="times">
-                <span title={e.in?.device} className={e.review && e.in ? 'guess' : ''}>{e.in ? hhmm(e.in.time) : '?'}</span>
-                <span className="muted">→</span>
-                <span title={e.out?.device} className={e.review && e.out ? 'guess' : ''}>{e.out ? hhmm(e.out.time) : '?'}</span>
-              </div>
-              {e.expected && (
-                <div className="muted small">
-                  {e.expected.start}–{e.expected.end}
-                  {e.workedMin > 0 && ` · ${dur(e.workedMin)}`}
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {absent.length > 0 && (
-        <>
-          <h2>Faltaron</h2>
-          <ul className="list compact">
-            {absent.map((e) => (
-              <li key={e.employeeId} className="card attendance">
-                <div className="grow">
-                  <strong>{e.name}</strong>
-                  <div className="muted small">
-                    Entraba {e.expected?.start}
-                    {e.absences.map((a) => ` · ${KIND_SHORT[a.kind]}`)}
-                  </div>
-                </div>
-                <div className="actions">
-                  <button className="secondary small-btn" onClick={() => setDetail(e.employeeId)}>
-                    Corregir
-                  </button>
-                  <Link className="button secondary small-btn" to={`/novedades?empleado=${e.employeeId}&fecha=${date}`}>
-                    Justificar
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {pending.length > 0 && (
-        <>
-          <h2>Todavía no llegaron</h2>
-          <ul className="list compact">
-            {pending.map((e) => (
-              <li key={e.employeeId} className="card attendance muted">
-                {e.name}
-                <span className="small">entra {e.expected?.start}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {justified.length > 0 && (
-        <>
-          <h2>Con novedad</h2>
-          <ul className="list compact">
-            {justified.map((e) => (
-              <li key={e.employeeId} className="card attendance">
-                <span className="grow">{e.name}</span>
-                <span className="badges">
-                  {e.absences.map((a) => (
-                    <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
-                      {KIND_SHORT[a.kind]}
-                    </span>
-                  ))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {dayOff.length > 0 && (
-        <p className="muted small">
-          No les tocaba trabajar: {dayOff.map((e) => e.name).join(' · ')}
-        </p>
+      {data && rows.length === 0 && <p className="muted">Nadie tenía que trabajar este día.</p>}
+      {rows.length > 0 && (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Persona</th>
+                <th>Sucursal</th>
+                <th>Horario</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th className="num">Horas</th>
+                <th>Estado</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((e) => (
+                <tr key={e.employeeId} className="clickable" onClick={() => openPerson(e.employeeId)}>
+                  <td>
+                    <strong>{e.name}</strong>
+                  </td>
+                  <td>{siteName(e.workedSiteId)}</td>
+                  <td className="muted nowrap">{e.expected ? `${e.expected.start}–${e.expected.end}` : ''}</td>
+                  <td className={e.review && e.in ? 'guess' : ''} title={e.in?.device}>
+                    {e.in ? hhmm(e.in.time) : '–'}
+                  </td>
+                  <td className={e.review && e.out ? 'guess' : ''} title={e.out?.device}>
+                    {e.out ? hhmm(e.out.time) : '–'}
+                  </td>
+                  <td className="num">{e.workedMin > 0 ? dur(e.workedMin) : ''}</td>
+                  <td>
+                    <div className="badges">
+                      {e.status === 'ausente' && <span className="badge bad">Faltó</span>}
+                      {e.status === 'pendiente' && <span className="badge">Todavía no llegó</span>}
+                      {e.status === 'presente' && !e.lateMin && !e.earlyMin && !e.review && !e.missingOut && <span className="badge good">Bien</span>}
+                      {e.lateMin > 0 && <span className="badge bad">Llegó {dur(e.lateMin)} tarde</span>}
+                      {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
+                      {e.review && <span className="badge warn-bg">A revisar: {e.in ? 'sin salida' : 'sin entrada'}</span>}
+                      {!e.review && e.missingOut && <span className="badge warn-bg">Sin salida</span>}
+                      {(e.manualMarks.length > 0 || e.voidedMarks.length > 0) && <span className="badge warn-bg">✎ Corregido</span>}
+                      {e.absences.map((a) => (
+                        <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
+                          {KIND_SHORT[a.kind]}
+                        </span>
+                      ))}
+                      {e.workedSiteId !== e.siteId && e.siteId && <span className="badge">Rotó de sucursal</span>}
+                    </div>
+                  </td>
+                  <td className="nowrap" onClick={(ev) => ev.stopPropagation()}>
+                    {e.status === 'ausente' && (
+                      <button className="link small" onClick={() => navigate(`/novedades?empleado=${e.employeeId}&fecha=${date}`)}>
+                        Justificar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {data && data.unknownCodes.length > 0 && (
         <p className="warn small">
-          Hay marcaciones de legajos que no están en Personal: {data.unknownCodes.join(', ')}. Usá «Importar personas» en
-          Equipos para traerlos.
+          Hay marcaciones de legajos que no están en Personal: {data.unknownCodes.join(', ')}. Se traen desde Admin → Equipos →
+          Importar personas.
         </p>
       )}
     </section>
@@ -248,7 +214,7 @@ export function AttendancePage() {
  * Detalle del día de una persona: todas sus marcas (entrada, salida, las del medio, las cargadas a mano y las
  * anuladas) para corregirlas con motivo, y el historial de cambios de ese día. Nada se borra.
  */
-function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; onChange(): void; onClose(): void }) {
+function DayDetail({ row, date, onChange }: { row: Row; date: string; onChange(): void }) {
   const [f, setF] = useState({ in: '', out: '', note: '' });
   const [editing, setEditing] = useState<{ mark: Mark; mode: 'cambiar' | 'anular'; time: string; reason: string } | null>(null);
   const [history, setHistory] = useState<AuditRow[]>([]);
@@ -313,9 +279,13 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
 
   return (
     <section>
-      <div className="row">
-        <h1>{row.name}</h1>
-      </div>
+      <PageHeader
+        crumbs={[
+          { label: 'Asistencia', to: '/asistencia' },
+          { label: shortDate(date), to: `/asistencia?fecha=${date}` },
+          { label: row.name },
+        ]}
+      />
       <p className="muted small">
         {shortDate(date)}
         {row.expected ? ` · horario ${row.expected.start} a ${row.expected.end}` : ' · no le tocaba trabajar'}
@@ -428,9 +398,6 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
           <Link className="button secondary" to={`/novedades?empleado=${row.employeeId}&fecha=${date}`}>
             Justificar
           </Link>
-          <button type="button" className="link" onClick={onClose}>
-            Volver
-          </button>
         </div>
       </form>
 

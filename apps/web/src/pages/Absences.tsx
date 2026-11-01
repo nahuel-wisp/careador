@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { api } from '../api';
 import { shrinkImage } from '../lib/image';
+import { PageHeader } from '../ui';
 import { KIND_LABEL, KIND_SHORT, shortDate, today, type AbsenceKind } from '../lib/schedules';
 
 interface AbsenceFile {
@@ -76,48 +77,58 @@ export function AbsencesPage() {
   const current = absences?.filter((a) => a.dateTo >= t) ?? [];
   const past = (absences?.filter((a) => a.dateTo < t) ?? []).reverse();
 
-  const item = (a: Absence) => (
-    <li key={a.id}>
-      <button className="card person" onClick={() => setEditing(a)}>
-        <div className="grow">
-          <strong>{name(a.employeeId)}</strong>
-          <div className="small">
-            <span className={`badge kind-${a.kind}`}>{KIND_SHORT[a.kind]}</span>{' '}
-            {a.dateFrom === a.dateTo ? shortDate(a.dateFrom) : `${shortDate(a.dateFrom)} al ${shortDate(a.dateTo)}`}
-            {a.kind === 'horario_especial' && ` · ${a.startTime} a ${a.endTime}`}
-          </div>
-          {a.note && <div className="muted small">{a.note}</div>}
-        </div>
-        {a.files.length > 0 && (
-          <span className="muted small" title="Comprobantes">
-            📎 {a.files.length}
-          </span>
-        )}
-      </button>
-    </li>
+  const table = (rows: Absence[]) => (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Tipo</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Nota</th>
+            <th>Comprobantes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a) => (
+            <tr key={a.id} className="clickable" onClick={() => setEditing(a)}>
+              <td>
+                <strong>{name(a.employeeId)}</strong>
+              </td>
+              <td>
+                <span className={`badge kind-${a.kind}`}>{KIND_SHORT[a.kind]}</span>
+                {a.kind === 'horario_especial' && <span className="muted small"> {a.startTime} a {a.endTime}</span>}
+              </td>
+              <td className="nowrap">{shortDate(a.dateFrom)}</td>
+              <td className="nowrap">{a.dateTo === a.dateFrom ? '' : shortDate(a.dateTo)}</td>
+              <td className="muted">{a.note}</td>
+              <td>{a.files.length > 0 && `📎 ${a.files.length}`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 
   return (
     <section>
-      <div className="row">
-        <h1>Novedades</h1>
+      <PageHeader crumbs={[{ label: 'Novedades' }]}>
         <button onClick={() => setEditing('nuevo')}>Agregar</button>
-      </div>
-      <p className="muted small">
-        Vacaciones, francos, licencias, feriados y permisos. Esos días no cuentan como falta ni como llegada tarde.
-      </p>
+      </PageHeader>
+      <p className="muted small">Vacaciones, francos, licencias, feriados, permisos y horarios especiales.</p>
       {error && <p className="error">{error}</p>}
       {absences?.length === 0 && <p className="muted">No hay novedades cargadas.</p>}
       {current.length > 0 && (
         <>
           <h2>Vigentes y próximas</h2>
-          <ul className="list">{current.map(item)}</ul>
+          {table(current)}
         </>
       )}
       {past.length > 0 && (
         <>
           <h2>Últimos 30 días</h2>
-          <ul className="list">{past.map(item)}</ul>
+          {table(past)}
         </>
       )}
     </section>
@@ -222,8 +233,8 @@ function AbsenceForm({
 
   return (
     <section>
-      <h1>{absence ? 'Novedad' : 'Nueva novedad'}</h1>
-      <form className="form card col wide" onSubmit={submit}>
+      <PageHeader crumbs={[{ label: 'Novedades', to: '/novedades' }, { label: absence ? 'Novedad' : 'Nueva novedad' }]} />
+      <form className="panel form wide" onSubmit={submit} style={{ maxWidth: 640 }}>
         <label>
           Tipo
           <select value={f.kind} onChange={set('kind')}>

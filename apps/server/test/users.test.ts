@@ -46,7 +46,23 @@ describe('usuarios, roles y contraseña provisoria', () => {
     expect((await ana$('POST', '/api/devices', { siteId: 1, name: 'x', brand: 'simulador', host: 'x', username: 'x', password: 'x' })).statusCode).toBe(403);
     expect((await ana$('PATCH', '/api/devices/1', { readOnly: false })).statusCode).toBe(403);
     expect((await ana$('GET', '/api/users')).statusCode).toBe(403);
-    expect((await ana$('POST', '/api/sites', { name: 'Otra' })).statusCode).toBe(403);
+    // Las sucursales y horarios los maneja el operador; los lectores no.
+    const site = await ana$('POST', '/api/sites', { name: 'Otra', address: 'Calle 13 1234', phone: '221 555-0000' });
+    expect(site.statusCode).toBe(201);
+    expect((await ana$('PATCH', `/api/sites/${site.json().id}`, { notes: 'Abre 9 hs' })).json()).toMatchObject({ address: 'Calle 13 1234', notes: 'Abre 9 hs' });
+    // Manda una sugerencia; la bandeja la ve sólo el admin, que la marca y responde.
+    const fb = await ana$('POST', '/api/feedback', { kind: 'error', text: 'No me deja justificar', page: '/asistencia' });
+    expect(fb.statusCode).toBe(201);
+    expect((await ana$('GET', '/api/feedback')).statusCode).toBe(403);
+    expect((await ana$('PATCH', `/api/feedback/${fb.json().id}`, { status: 'resuelto' })).statusCode).toBe(403);
+    expect((await admin('GET', '/api/feedback')).json()[0]).toMatchObject({ userName: 'Ana', kind: 'error', status: 'nuevo', page: '/asistencia' });
+    await admin('PATCH', `/api/feedback/${fb.json().id}`, { status: 'resuelto', reply: 'Arreglado' });
+    expect((await ana$('GET', '/api/feedback/mine')).json()[0]).toMatchObject({ status: 'resuelto', reply: 'Arreglado' });
+    // Sus propios datos de contacto.
+    expect((await ana$('PATCH', '/api/auth/me', { phone: '221 444-1111', contactEmail: 'Ana@Arsa.com' })).json()).toMatchObject({
+      phone: '221 444-1111',
+      contactEmail: 'ana@arsa.com',
+    });
     expect((await ana$('POST', '/api/history/hikcentral')).statusCode).toBe(403);
     expect((await ana$('GET', '/api/reports?from=2026-10-01&to=2026-10-02')).statusCode).toBe(200);
     expect((await ana$('POST', '/api/absences', { employeeId: null, kind: 'feriado', dateFrom: '2026-11-20', dateTo: '2026-11-20' })).statusCode).toBe(201);

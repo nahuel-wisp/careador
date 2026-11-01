@@ -24,6 +24,12 @@ const scheduleInput = z.object({
   days: z.array(day).length(7),
   lateToleranceMin: z.number().int().min(0).max(240).default(15),
   earlyToleranceMin: z.number().int().min(0).max(240).default(15),
+  lunch: z
+    .object({ start: hhmm, end: hhmm })
+    .refine((l) => l.start < l.end, 'El almuerzo tiene que terminar después de empezar')
+    .nullable()
+    .default(null),
+  lunchDeducted: z.boolean().default(false),
 });
 
 const absenceInput = z

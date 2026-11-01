@@ -14,6 +14,9 @@ export const sites = sqliteTable('sites', {
   timezone: text('timezone').notNull().default('America/Argentina/Buenos_Aires'),
   /** Horario que tiene el personal de la sucursal si no tiene uno propio. */
   scheduleId: integer('schedule_id').references(() => schedules.id, { onDelete: 'set null' }),
+  address: text('address'),
+  phone: text('phone'),
+  notes: text('notes'),
   ...timestamps,
 });
 
@@ -55,6 +58,11 @@ export const employees = sqliteTable(
     /** Sucursal principal (para reportes y horario por defecto). */
     siteId: integer('site_id').references(() => sites.id),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
+    position: text('position'),
+    phone: text('phone'),
+    notes: text('notes'),
+    /** Almuerzo propio: reemplaza al del horario. */
+    lunch: text('lunch', { mode: 'json' }).$type<DaySchedule | null>(),
     ...timestamps,
   },
   (t) => [uniqueIndex('employees_code_uq').on(t.code)],
@@ -136,6 +144,8 @@ export const appUsers = sqliteTable(
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     /** Contraseña provisoria (la puso un admin): hasta cambiarla no puede usar la app. */
     mustChangePassword: integer('must_change_password', { mode: 'boolean' }).notNull().default(false),
+    phone: text('phone'),
+    contactEmail: text('contact_email'),
     ...timestamps,
   },
   (t) => [uniqueIndex('app_users_email_uq').on(t.username)],
@@ -172,6 +182,10 @@ export const schedules = sqliteTable('schedules', {
   /** Minutos de gracia: llegar hasta N min tarde o salir N min antes no cuenta. */
   lateToleranceMin: integer('late_tolerance_min').notNull().default(15),
   earlyToleranceMin: integer('early_tolerance_min').notNull().default(15),
+  /** Almuerzo de los días que lo abarcan; null = sin almuerzo. */
+  lunch: text('lunch', { mode: 'json' }).$type<DaySchedule | null>(),
+  /** Si el almuerzo se descuenta de las horas trabajadas (en Arsa hoy cuenta como trabajado). */
+  lunchDeducted: integer('lunch_deducted', { mode: 'boolean' }).notNull().default(false),
   ...timestamps,
 });
 
@@ -260,4 +274,24 @@ export const auditLog = sqliteTable(
     detail: text('detail', { mode: 'json' }),
   },
   (t) => [index('audit_employee_idx').on(t.employeeId, t.date), index('audit_at_idx').on(t.at)],
+);
+
+/** Sugerencias y errores que mandan los usuarios; los lee el administrador en Admin → Bandeja. */
+export const feedback = sqliteTable(
+  'feedback',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    at: integer('at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+    userId: integer('user_id').references(() => appUsers.id, { onDelete: 'set null' }),
+    userName: text('user_name').notNull(),
+    kind: text('kind', { enum: ['sugerencia', 'error'] }).notNull(),
+    text: text('text').notNull(),
+    /** Pantalla desde la que lo mandó. */
+    page: text('page'),
+    status: text('status', { enum: ['nuevo', 'visto', 'resuelto'] }).notNull().default('nuevo'),
+    /** Respuesta o comentario del administrador. */
+    reply: text('reply'),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index('feedback_status_idx').on(t.status, t.at)],
 );

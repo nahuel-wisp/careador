@@ -1,86 +1,115 @@
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router';
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './auth';
 import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
 import { AbsencesPage } from './pages/Absences';
-import { AdminPage } from './pages/Admin';
 import { AccountPage, ForcedPasswordPage } from './pages/Account';
+import { AdminPage } from './pages/Admin';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
+import { FeedbackPage, InboxPage } from './pages/Feedback';
 import { HistoryPage } from './pages/History';
 import { ImportPage } from './pages/Import';
 import { LoginPage } from './pages/Login';
-import { PersonalPage } from './pages/Personal';
+import { EmployeePage, PersonalPage } from './pages/Personal';
 import { ReportsPage } from './pages/Reports';
-import { SchedulesPage } from './pages/Schedules';
+import { SitesPage } from './pages/Schedules';
 import { SimulatorPage } from './pages/Simulator';
 import { UsersPage } from './pages/Users';
+import { useVista } from './ui';
 
 const tabs = [
-  { to: '/', label: 'Personal', icon: '👤' },
-  { to: '/asistencia', label: 'Asistencia', icon: '📋' },
-  { to: '/reportes', label: 'Reportes', icon: '📊' },
-  { to: '/novedades', label: 'Novedades', icon: '🗓️' },
-  { to: '/horarios', label: 'Horarios', icon: '🕒' },
-  { to: '/admin', label: 'Admin', icon: '⚙️', admin: true },
+  { to: '/personal', label: 'Personal' },
+  { to: '/asistencia', label: 'Asistencia' },
+  { to: '/reportes', label: 'Reportes' },
+  { to: '/novedades', label: 'Novedades' },
+  { to: '/sucursales', label: 'Sucursales y horarios' },
+  { to: '/admin', label: 'Admin', admin: true },
 ];
 
-/** Páginas que se abren desde Administración: la pestaña queda marcada. */
-const ADMIN_PATHS = ['/equipos', '/usuarios', '/importar', '/historial', '/simulador'];
+/** Páginas que se abren desde Admin: la pestaña queda marcada. */
+const ADMIN_PATHS = ['/admin', '/equipos', '/usuarios', '/importar', '/historial', '/bandeja', '/simulador'];
 
 export function App() {
   const { user, loading } = useAuth();
+  const [vista, setVista] = useVista();
   const { pathname } = useLocation();
   if (loading) return null;
   if (!user) return <LoginPage />;
   if (user.mustChangePassword) return <ForcedPasswordPage />;
   const isAdmin = user.role === 'admin';
-  const visibleTabs = tabs.filter((t) => !t.admin || isAdmin);
+  const celular = vista === 'celular';
 
   return (
     <EntornoProvider>
-    <div className="app">
-      <EntornoBanner />
-      <header className="topbar">
-        <Brand />
-        <Link className="link small" to="/cuenta" title="Mi cuenta">
-          {user.name}
-        </Link>
-      </header>
-      <main className="content">
-        <Routes>
-          <Route path="/" element={<PersonalPage />} />
-          <Route path="/horarios" element={<SchedulesPage />} />
-          <Route path="/novedades" element={<AbsencesPage />} />
-          <Route path="/reportes" element={<ReportsPage />} />
-          {isAdmin && <Route path="/historial" element={<HistoryPage />} />}
-          <Route path="/asistencia" element={<AttendancePage />} />
-          <Route path="/cuenta" element={<AccountPage />} />
-          {isAdmin && <Route path="/admin" element={<AdminPage />} />}
-          {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
-          {isAdmin && <Route path="/usuarios" element={<UsersPage />} />}
-          {isAdmin && <Route path="/importar" element={<ImportPage />} />}
-          {isAdmin && <Route path="/simulador/:id" element={<SimulatorPage />} />}
-        </Routes>
-      </main>
-      <nav className="tabbar" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
-        {visibleTabs.map((t) => (
-          <NavLink
-            key={t.to}
-            to={t.to}
-            end
-            className={({ isActive }) => (isActive || (t.admin && ADMIN_PATHS.some((p) => pathname.startsWith(p))) ? 'tab active' : 'tab')}
-          >
-            <span aria-hidden>{t.icon}</span>
-            <span>{t.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-    </div>
+      <div className="app">
+        <EntornoBanner />
+        <header className="topnav">
+          <Brand />
+          <nav className="navtabs">
+            {tabs
+              .filter((t) => !t.admin || isAdmin)
+              .map((t) => (
+                <NavLink
+                  key={t.to}
+                  to={t.to}
+                  className={({ isActive }) => (isActive || (t.admin && ADMIN_PATHS.some((p) => pathname.startsWith(p))) ? 'active' : '')}
+                >
+                  {t.label}
+                </NavLink>
+              ))}
+          </nav>
+          <div className="user">
+            <a href="#" onClick={(e) => (e.preventDefault(), setVista(celular ? 'pc' : 'celular'))}>
+              {celular ? 'Versión PC' : 'Versión celular'}
+            </a>
+            <Link to="/sugerencias" state={{ from: pathname }}>
+              Sugerencias
+            </Link>
+            <Link to="/cuenta">{user.name}</Link>
+          </div>
+        </header>
+        <main className="content">
+          {celular ? (
+            // En el celular: sólo cargar y ver personal con fotos.
+            <Routes>
+              <Route path="/personal" element={<PersonalPage />} />
+              <Route path="/personal/:id" element={<EmployeePage />} />
+              <Route path="/cuenta" element={<AccountPage />} />
+              <Route path="/sugerencias" element={<FeedbackPage />} />
+              <Route path="*" element={<Navigate to="/personal" replace />} />
+            </Routes>
+          ) : (
+            <Routes>
+              <Route path="/" element={<Navigate to="/personal" replace />} />
+              <Route path="/personal" element={<PersonalPage />} />
+              <Route path="/personal/:id" element={<EmployeePage />} />
+              <Route path="/asistencia" element={<AttendancePage />} />
+              <Route path="/reportes" element={<ReportsPage />} />
+              <Route path="/novedades" element={<AbsencesPage />} />
+              <Route path="/sucursales" element={<SitesPage />} />
+              <Route path="/cuenta" element={<AccountPage />} />
+              <Route path="/sugerencias" element={<FeedbackPage />} />
+              {isAdmin && <Route path="/admin" element={<AdminPage />} />}
+              {isAdmin && <Route path="/bandeja" element={<InboxPage />} />}
+              {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
+              {isAdmin && <Route path="/usuarios" element={<UsersPage />} />}
+              {isAdmin && <Route path="/importar" element={<ImportPage />} />}
+              {isAdmin && <Route path="/historial" element={<HistoryPage />} />}
+              {isAdmin && <Route path="/simulador/:id" element={<SimulatorPage />} />}
+              <Route path="*" element={<Navigate to="/personal" replace />} />
+            </Routes>
+          )}
+        </main>
+      </div>
     </EntornoProvider>
   );
 }
 
 function Brand() {
   const empresa = useEntorno()?.empresa;
-  return <span className="brand">Control Horario{empresa ? ` · ${empresa}` : ''}</span>;
+  return (
+    <span className="brand">
+      Control Horario{empresa && <small> · {empresa}</small>}
+    </span>
+  );
 }

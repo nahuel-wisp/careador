@@ -77,6 +77,11 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
       day: from,
       now,
     });
+    // Almuerzo: el propio de la persona o el del horario, si el día lo abarca. Se descuenta si el horario lo dice.
+    const lunchWindow = e.lunch ?? schedule?.lunch ?? null;
+    const lunch = lunchWindow && expected && expected.start < lunchWindow.start && lunchWindow.end < expected.end ? lunchWindow : null;
+    const lunchMin =
+      lunch && schedule?.lunchDeducted && first && last ? overlapMin(first.time, last.time, at(from, lunch.start), at(from, lunch.end)) : 0;
     return [
       {
         employeeId: e.id,
@@ -99,12 +104,25 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
         expected,
         absences: novedades,
         ...evaluation,
+        lunch,
+        workedMin: evaluation.workedMin - lunchMin,
       },
     ];
   });
   // Marcaciones de legajos que no están en la app (p. ej. cargados sólo en el equipo).
   const unknownCodes = [...new Set(rows.filter((r) => !r.employeeId && r.personCode).map((r) => r.personCode!))];
   return { from, to, employees: result, unknownCodes };
+}
+
+/** "HH:MM" de un día como fecha. */
+function at(day: Date, hhmm: string) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), h!, m!);
+}
+
+/** Minutos en que se pisan dos intervalos. */
+function overlapMin(a1: Date, a2: Date, b1: Date, b2: Date) {
+  return Math.max(0, Math.round((Math.min(a2.getTime(), b2.getTime()) - Math.max(a1.getTime(), b1.getTime())) / 60_000));
 }
 
 export type DayRow = ReturnType<typeof dayAttendance>['employees'][number];

@@ -57,6 +57,20 @@
       "when": 1793567650807,
       "tag": "0007_clave_provisoria",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793570995415,
+      "tag": "0008_fichas_sucursales_almuerzo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793571501909,
+      "tag": "0009_sugerencias",
+      "breakpoints": true
     }
   ]
 }

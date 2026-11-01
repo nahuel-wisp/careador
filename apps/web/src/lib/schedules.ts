@@ -10,6 +10,10 @@ export interface Schedule {
   days: (DaySchedule | null)[];
   lateToleranceMin: number;
   earlyToleranceMin: number;
+  /** Almuerzo de los días que lo abarcan. */
+  lunch: DaySchedule | null;
+  /** Si el almuerzo se descuenta de las horas. */
+  lunchDeducted: boolean;
 }
 
 export interface Assignment {

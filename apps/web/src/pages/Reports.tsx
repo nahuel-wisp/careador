@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useEntorno } from '../entorno';
 import { KIND_SHORT, shortDate, type AbsenceKind } from '../lib/schedules';
+import { PageHeader } from '../ui';
 
 interface ReportRow {
   date: string;
@@ -185,68 +186,54 @@ export function ReportsPage() {
 
   return (
     <section className="report">
-      <div className="row no-print">
-        <h1>Reportes</h1>
-      </div>
+      <PageHeader crumbs={[{ label: 'Reportes' }]}>
+        <button className="secondary small-btn" onClick={() => window.print()} disabled={!report} title="Imprimir o guardar como PDF">
+          Imprimir
+        </button>
+        <a className="button secondary small-btn" href={`/api/reports.xlsx?${query}`} download>
+          Excel
+        </a>
+        <button className="secondary small-btn" onClick={() => report && downloadCsv(report)} disabled={!report}>
+          CSV
+        </button>
+      </PageHeader>
 
-      <div className="filters no-print">
-        <div className="chips">
+      <div className="toolbar no-print">
+        <select value={preset} onChange={(e) => choose(e.target.value as Preset)} aria-label="Período">
           {PRESETS.map((p) => (
-            <button key={p.id} className={preset === p.id ? 'chip active' : 'chip'} onClick={() => choose(p.id)}>
+            <option key={p.id} value={p.id}>
               {p.label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
         {preset === 'rango' && (
-          <div className="two">
-            <label>
-              Desde
-              <input type="date" value={range[0]} max={range[1]} onChange={(e) => setRange([e.target.value, range[1]])} />
-            </label>
-            <label>
-              Hasta
-              <input type="date" value={range[1]} min={range[0]} onChange={(e) => setRange([range[0], e.target.value])} />
-            </label>
-          </div>
+          <>
+            <input type="date" value={range[0]} max={range[1]} onChange={(e) => setRange([e.target.value, range[1]])} aria-label="Desde" />
+            <span className="muted">a</span>
+            <input type="date" value={range[1]} min={range[0]} onChange={(e) => setRange([range[0], e.target.value])} aria-label="Hasta" />
+          </>
         )}
-        <div className="two">
-          <select value={siteId} onChange={(e) => setSiteId(e.target.value)} aria-label="Sucursal">
-            <option value="">Todas las sucursales</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} aria-label="Persona">
-            <option value="">Todo el personal</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.lastName}, {p.firstName}
-                {p.active ? '' : ' · baja'}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="segmented">
-          <button className={view === 'resumen' ? 'active' : ''} onClick={() => setView('resumen')}>
-            Resumen
-          </button>
-          <button className={view === 'detalle' ? 'active' : ''} onClick={() => setView('detalle')}>
-            Día por día
-          </button>
-        </div>
-        <div className="actions export">
-          <button className="secondary" onClick={() => window.print()} disabled={!report} title="Imprimir o guardar como PDF">
-            Imprimir
-          </button>
-          <a className="button secondary" href={`/api/reports.xlsx?${query}`} download>
-            Excel
-          </a>
-          <button className="secondary" onClick={() => report && downloadCsv(report)} disabled={!report}>
-            CSV
-          </button>
-        </div>
+        <select value={siteId} onChange={(e) => setSiteId(e.target.value)} aria-label="Sucursal">
+          <option value="">Todas las sucursales</option>
+          {sites.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} aria-label="Persona">
+          <option value="">Todo el personal</option>
+          {people.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.lastName}, {p.firstName}
+              {p.active ? '' : ' · baja'}
+            </option>
+          ))}
+        </select>
+        <select value={view} onChange={(e) => setView(e.target.value as 'resumen' | 'detalle')} aria-label="Vista">
+          <option value="resumen">Resumen por persona</option>
+          <option value="detalle">Día por día</option>
+        </select>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -300,6 +287,7 @@ export function ReportsPage() {
                   <thead>
                     <tr>
                       <th>Empleado</th>
+                      <th>Sucursal</th>
                       <th>Días</th>
                       <th>Horas</th>
                       <th>Tarde</th>
@@ -312,10 +300,10 @@ export function ReportsPage() {
                   <tbody>
                     {report.summary.map((s) => (
                       <tr key={s.employeeId}>
-                        <td>
-                          {s.name}
-                          <div className="muted small">{s.site}</div>
+                        <td className="nowrap">
+                          <strong>{s.name}</strong>
                         </td>
+                        <td>{s.site}</td>
                         <td>
                           {s.workedDays}
                           {s.expectedDays ? <span className="muted">/{s.expectedDays}</span> : null}
@@ -342,6 +330,7 @@ export function ReportsPage() {
                 <thead>
                   <tr>
                     <th>Empleado</th>
+                    <th>Sucursal</th>
                     <th>Fecha</th>
                     <th>Entrada</th>
                     <th>Salida</th>
@@ -353,20 +342,10 @@ export function ReportsPage() {
                 <tbody>
                   {records.map((r, i) => {
                     const first = i === 0 || records[i - 1]!.employeeId !== r.employeeId;
-                    // La sucursal sólo cuando cambia: así se ve cuándo rotó.
-                    const siteChanged = first || records[i - 1]!.site !== r.site;
                     return (
                       <tr key={`${r.employeeId}-${r.date}`} className={first ? 'group-start' : ''}>
-                        <td>
-                          {first ? (
-                            <>
-                              {r.lastName}, {r.firstName}
-                            </>
-                          ) : (
-                            ''
-                          )}
-                          {siteChanged && <div className="muted small">{r.site}</div>}
-                        </td>
+                        <td className="nowrap">{first && <strong>{`${r.lastName}, ${r.firstName}`}</strong>}</td>
+                        <td>{r.site}</td>
                         <td className="nowrap">
                           {r.weekday.slice(0, 3)} {shortDate(r.date)}
                         </td>
