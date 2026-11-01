@@ -248,3 +248,11 @@ tr.group-start td { border-top: 2px solid var(--border); }
 .card.clickable { cursor: pointer; }
 .guess { color: #b45309; font-style: italic; }
 .guess::after { content: '?'; }
+.card.mark { gap: 4px; padding: 10px 14px; }
+.card.mark .row { margin: 0; }
+.mark-actions { gap: 16px; }
+.mark-edit { display: grid; gap: 8px; }
+.mark-edit input { width: 100%; }
+.card.mark.voided { opacity: 0.7; border-style: dashed; }
+.history-list li { border-left: 3px solid var(--border); padding: 2px 0 2px 10px; }
+a.link { color: var(--accent); text-decoration: none; }

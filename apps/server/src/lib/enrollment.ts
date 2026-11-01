@@ -5,8 +5,11 @@ import { devices, employeeFaces, employees, enrollments } from '../db/schema';
 import { driverFor } from './devices';
 import { historyNames, linkImported, nameKey } from './history';
 
-/** Cada cuánto se reintenta lo que quedó pendiente o con error (equipo apagado, sin red...). */
-export const RETRY_MS = 5 * 60 * 1000;
+/**
+ * Cada cuánto se leen marcaciones nuevas y se reintenta lo que quedó pendiente (equipo apagado, sin red...).
+ * Una vez por hora alcanza: la app se consulta pocas veces y «Actualizar» trae lo último cuando hace falta.
+ */
+export const RETRY_MS = 60 * 60 * 1000;
 
 export interface SyncSummary {
   synced: number;

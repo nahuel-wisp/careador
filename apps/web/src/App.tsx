@@ -4,6 +4,7 @@ import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
 import { AbsencesPage } from './pages/Absences';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
+import { HistoryPage } from './pages/History';
 import { LoginPage } from './pages/Login';
 import { PersonalPage } from './pages/Personal';
 import { ReportsPage } from './pages/Reports';
@@ -41,6 +42,7 @@ export function App() {
           <Route path="/horarios" element={<SchedulesPage />} />
           <Route path="/novedades" element={<AbsencesPage />} />
           <Route path="/reportes" element={<ReportsPage />} />
+          <Route path="/historial" element={<HistoryPage />} />
           <Route path="/asistencia" element={<AttendancePage />} />
           <Route path="/equipos" element={<DevicesPage />} />
           <Route path="/simulador/:id" element={<SimulatorPage />} />

@@ -76,6 +76,8 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.delete<{ Params: { id: string } }>('/api/devices/:id', async (req, reply) => {
+    const before = db.select().from(devices).where(eq(devices.id, Number(req.params.id))).get();
+    req.auditBefore = before && publicDevice(before);
     const res = db.delete(devices).where(eq(devices.id, Number(req.params.id))).run();
     return res.changes ? { ok: true } : reply.code(404).send({ error: 'Equipo inexistente' });
   });

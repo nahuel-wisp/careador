@@ -108,6 +108,7 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.put<{ Params: { id: string } }>('/api/schedules/:id', async (req) => {
+    req.auditBefore = db.select().from(schedules).where(eq(schedules.id, Number(req.params.id))).get();
     const [row] = db
       .update(schedules)
       .set({ ...scheduleInput.parse(req.body), updatedAt: new Date() })
@@ -120,6 +121,7 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.delete<{ Params: { id: string } }>('/api/schedules/:id', async (req) => {
     const id = Number(req.params.id);
+    req.auditBefore = db.select().from(schedules).where(eq(schedules.id, id)).get();
     // Las sucursales que lo usaban quedan sin horario por defecto; las asignaciones propias se borran (cascade).
     db.update(sites).set({ scheduleId: null }).where(eq(sites.scheduleId, id)).run();
     if (!db.delete(schedules).where(eq(schedules.id, id)).run().changes) throw notFound('Horario');
@@ -210,6 +212,7 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.put<{ Params: { id: string } }>('/api/absences/:id', async (req) => {
+    req.auditBefore = db.select().from(absences).where(eq(absences.id, Number(req.params.id))).get();
     const [row] = db
       .update(absences)
       .set({ ...absenceInput.parse(req.body), updatedAt: new Date() })
@@ -221,6 +224,7 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.delete<{ Params: { id: string } }>('/api/absences/:id', async (req) => {
+    req.auditBefore = db.select().from(absences).where(eq(absences.id, Number(req.params.id))).get();
     if (!db.delete(absences).where(eq(absences.id, Number(req.params.id))).run().changes) throw notFound('Novedad');
     return { ok: true };
   });
@@ -256,6 +260,12 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.delete<{ Params: { id: string } }>('/api/absence-files/:id', async (req) => {
+    // El archivo en sí se borra; en el historial queda de qué novedad era y cómo se llamaba.
+    req.auditBefore = db
+      .select({ absenceId: absenceFiles.absenceId, fileName: absenceFiles.fileName, mime: absenceFiles.mime })
+      .from(absenceFiles)
+      .where(eq(absenceFiles.id, Number(req.params.id)))
+      .get();
     if (!db.delete(absenceFiles).where(eq(absenceFiles.id, Number(req.params.id))).run().changes) throw notFound('Archivo');
     return { ok: true };
   });

@@ -65,8 +65,8 @@ Hecho:
 - Alta/baja de sucursales y equipos desde la app; prueba de conexión.
 - Docker + despliegue por entornos; instructivo. Pruebas y producción andando en 10.10.70.5 (31/10).
 - **Personal**: alta con foto desde el celular, edición, baja/re-alta, importar personas de un equipo.
-  Cada empleado activo va a todos los equipos habilitados (`lib/enrollment.ts`, reintento cada 5 min).
-- **Marcaciones**: se leen de cada equipo cada 5 min y al arrancar (`lib/events.ts`, sólo lectura) y la
+  Cada empleado activo va a todos los equipos habilitados (`lib/enrollment.ts`, reintento cada hora).
+- **Marcaciones**: se leen de cada equipo cada hora (sólo lo nuevo), al arrancar y con «Actualizar» (`lib/events.ts`, sólo lectura) y la
   pantalla Asistencia muestra por día entrada (primera) / salida (última) y quién no marcó.
 - **Horarios y novedades**: horarios semanales con tolerancias (`schedules`), default por sucursal y horario
   propio con vigencia (`schedule_assignments`). El día se mide con el horario de la sucursal **donde marcó
@@ -84,8 +84,12 @@ Hecho:
 - **Entrada/salida** (`pickInOut`): entrada = primera marca hasta la mitad del horario, salida = última después;
   las del medio son «otras marcas» (pasó por el lector) y no cuentan. Si falta una, el día queda **«A revisar»**
   (la hora es una sugerencia y no se calcula tardanza/salida), salvo permiso de llegada/salida.
-- **Correcciones a mano** (Asistencia → tocar a la persona): marcas con `source = 'manual'`, motivo y quién
-  (en `raw`); se ven como «Corregido a mano» en reportes. Las de los equipos no se borran.
+- **Correcciones a mano** (Asistencia → tocar a la persona, `routes/marks.ts`): agregar (marca `source='manual'`,
+  motivo y quién en `raw`), cambiar hora (manual: se edita; de equipo: se anula y se agrega una manual) y
+  anular/restaurar (`voided_*`). **Nada se borra.** Se ven como «Corregido a mano» en reportes.
+- **Historial de cambios** (`audit_log`, `lib/audit.ts`): las marcas se registran solas; el resto de los cambios
+  (personal, horarios, novedades, equipos, importaciones) con un hook `onResponse` y la tabla `LABELS`.
+  Pantalla `/historial` (desde Reportes) y el historial del día en el detalle de Asistencia.
 - Novedad **«Horario especial»**: otra entrada/salida para esos días (reemplaza al horario).
 
 Pendiente, en orden:

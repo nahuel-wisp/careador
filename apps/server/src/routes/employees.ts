@@ -73,6 +73,7 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   app.patch<{ Params: { id: string } }>('/api/employees/:id', async (req, reply) => {
+    req.auditBefore = db.select().from(employees).where(eq(employees.id, Number(req.params.id))).get();
     const id = Number(req.params.id);
     const prev = db.select().from(employees).where(eq(employees.id, id)).get();
     if (!prev) return reply.code(404).send({ error: 'Empleado inexistente' });

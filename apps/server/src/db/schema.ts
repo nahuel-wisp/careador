@@ -109,6 +109,10 @@ export const events = sqliteTable(
     personName: text('person_name'),
     doorNo: integer('door_no'),
     raw: text('raw', { mode: 'json' }),
+    /** Marca anulada a mano (no cuenta para entrada/salida, pero no se borra). */
+    voidedAt: integer('voided_at', { mode: 'timestamp' }),
+    voidedBy: text('voided_by'),
+    voidReason: text('void_reason'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   },
   (t) => [
@@ -231,3 +235,26 @@ export const absenceFiles = sqliteTable('absence_files', {
   data: blob('data', { mode: 'buffer' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
+
+/**
+ * Historial de cambios hechos en la app: quién, cuándo, qué y por qué. Nunca se edita ni se borra.
+ * `employeeId` y `date` permiten ver el historial de una persona o de un día.
+ */
+export const auditLog = sqliteTable(
+  'audit_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    at: integer('at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+    userId: integer('user_id'),
+    userName: text('user_name').notNull(),
+    /** Ej.: "marca.agregar", "marca.anular", "novedad.crear", "horario.editar". */
+    action: text('action').notNull(),
+    /** Texto para leer: "Agregó salida 18:00 (se olvidó de marcar)". */
+    summary: text('summary').notNull(),
+    employeeId: integer('employee_id'),
+    date: text('date'),
+    /** Datos antes/después para auditoría. */
+    detail: text('detail', { mode: 'json' }),
+  },
+  (t) => [index('audit_employee_idx').on(t.employeeId, t.date), index('audit_at_idx').on(t.at)],
+);

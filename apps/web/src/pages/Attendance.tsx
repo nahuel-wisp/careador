@@ -4,8 +4,20 @@ import { api } from '../api';
 import { KIND_SHORT, shortDate, type AbsenceKind, type DaySchedule } from '../lib/schedules';
 
 interface Mark {
+  id: number;
   time: string;
   device?: string;
+  /** Cargada a mano (con motivo y quién). */
+  manual: boolean;
+  note: string | null;
+  by: string | null;
+}
+
+interface AuditRow {
+  id: number;
+  at: string;
+  userName: string;
+  summary: string;
 }
 
 interface Row {
@@ -29,7 +41,8 @@ interface Row {
   review: boolean;
   workedMin: number;
   otherMarks: Mark[];
-  manualMarks: { id: number; time: string; note: string; by: string }[];
+  manualMarks: Mark[];
+  voidedMarks: (Mark & { voidedBy: string | null; voidReason: string | null })[];
 }
 
 interface Attendance {
@@ -119,7 +132,7 @@ export function AttendancePage() {
                 {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
                 {e.review && <span className="badge warn-bg">A revisar: {e.in ? 'sin salida' : 'sin entrada'}</span>}
                 {!e.review && e.missingOut && <span className="badge warn-bg">Sin salida</span>}
-                {e.manualMarks.length > 0 && <span className="badge warn-bg">✎ Corregido a mano</span>}
+                {(e.manualMarks.length > 0 || e.voidedMarks.length > 0) && <span className="badge warn-bg">✎ Corregido a mano</span>}
                 {e.absences.map((a) => (
                   <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
                     {KIND_SHORT[a.kind]}
@@ -296,14 +309,24 @@ function HistoryImport({ onDone }: { onDone(): void }) {
 }
 
 /**
- * Detalle del día de una persona: todas sus marcas (entrada, salida, las del medio y las cargadas a mano) y
- * la corrección de lo que se olvidó de marcar, con motivo. Para un permiso o cambio de horario: Justificar.
+ * Detalle del día de una persona: todas sus marcas (entrada, salida, las del medio, las cargadas a mano y las
+ * anuladas) para corregirlas con motivo, y el historial de cambios de ese día. Nada se borra.
  */
 function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; onChange(): void; onClose(): void }) {
   const [f, setF] = useState({ in: '', out: '', note: '' });
+  const [editing, setEditing] = useState<{ mark: Mark; mode: 'cambiar' | 'anular'; time: string; reason: string } | null>(null);
+  const [history, setHistory] = useState<AuditRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+
+  const loadHistory = () =>
+    api<AuditRow[]>(`/audit?employeeId=${row.employeeId}&date=${date}`)
+      .then(setHistory)
+      .catch(() => {});
+  useEffect(() => {
+    loadHistory();
+  }, [row]);
 
   const marks = [
     row.in && { ...row.in, label: row.review ? 'Entrada (sugerida)' : 'Entrada' },
@@ -311,28 +334,46 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
     row.out && { ...row.out, label: row.review ? 'Salida (sugerida)' : 'Salida' },
   ].filter((m): m is Mark & { label: string } => !!m);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!f.in && !f.out) return setError('Poné la hora de entrada, de salida o las dos');
+  async function run(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
     try {
+      await fn();
+      onChange();
+      loadHistory();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function add(e: FormEvent) {
+    e.preventDefault();
+    if (!f.in && !f.out) return setError('Poné la hora de entrada, de salida o las dos');
+    const ok = await run(async () => {
       for (const time of [f.in, f.out].filter(Boolean)) {
         await api('/marks', { method: 'POST', body: JSON.stringify({ employeeId: row.employeeId, date, time, note: f.note }) });
       }
-      setF({ in: '', out: '', note: '' });
-      onChange();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar');
-    }
-    setBusy(false);
+    });
+    if (ok) setF({ in: '', out: '', note: '' });
   }
 
-  async function remove(id: number) {
-    if (!confirm('¿Borrar esta corrección?')) return;
-    await api(`/marks/${id}`, { method: 'DELETE' }).catch((e: Error) => setError(e.message));
-    onChange();
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    const { mark, mode, time, reason } = editing;
+    const ok = await run(() =>
+      mode === 'cambiar'
+        ? api(`/marks/${mark.id}`, { method: 'PUT', body: JSON.stringify({ time, reason }) })
+        : api(`/marks/${mark.id}/void`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    );
+    if (ok) setEditing(null);
   }
+
+  const restore = (m: Mark) => run(() => api(`/marks/${m.id}/restore`, { method: 'POST', body: '{}' }));
 
   return (
     <section>
@@ -350,40 +391,85 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
           se olvidó de marcar, cargá la que falta; si tenía permiso o cambio de horario, justificalo.
         </p>
       )}
+      {error && <p className="error">{error}</p>}
 
       <ul className="list compact">
         {marks.length === 0 && <li className="muted">No hay marcas este día.</li>}
-        {marks.map((m, i) => (
-          <li key={i} className="card attendance">
-            <span className="grow">
-              {m.label}
-              <div className="muted small">{m.device}</div>
-            </span>
-            <strong className="times">{hhmm(m.time)}</strong>
+        {marks.map((m) => (
+          <li key={m.id} className="card col mark">
+            <div className="row">
+              <span className="grow">
+                {m.label}
+                <div className="muted small">
+                  {m.device}
+                  {m.manual && m.note ? ` · ${m.note}` : ''}
+                  {m.manual && m.by ? ` · ${m.by}` : ''}
+                </div>
+              </span>
+              <strong className="times">{hhmm(m.time)}</strong>
+            </div>
+            {editing?.mark.id === m.id ? (
+              <form className="mark-edit" onSubmit={saveEdit}>
+                {editing.mode === 'cambiar' && (
+                  <input
+                    type="time"
+                    value={editing.time}
+                    onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                    required
+                    aria-label="Hora correcta"
+                  />
+                )}
+                <input
+                  value={editing.reason}
+                  onChange={(e) => setEditing({ ...editing, reason: e.target.value })}
+                  placeholder={editing.mode === 'cambiar' ? 'Motivo del cambio' : 'Motivo (ej.: pasó por el lector sin querer)'}
+                  required
+                  minLength={3}
+                  maxLength={300}
+                  aria-label="Motivo"
+                />
+                <div className="actions">
+                  <button type="submit" disabled={busy}>
+                    {editing.mode === 'cambiar' ? 'Cambiar' : 'Anular'}
+                  </button>
+                  <button type="button" className="link" onClick={() => setEditing(null)}>
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="actions mark-actions">
+                <button className="link small" onClick={() => setEditing({ mark: m, mode: 'cambiar', time: hhmm(m.time), reason: '' })}>
+                  Cambiar hora
+                </button>
+                <button className="link danger small" onClick={() => setEditing({ mark: m, mode: 'anular', time: '', reason: '' })}>
+                  Anular
+                </button>
+              </div>
+            )}
+          </li>
+        ))}
+        {row.voidedMarks.map((m) => (
+          <li key={m.id} className="card col mark voided">
+            <div className="row">
+              <span className="grow">
+                Anulada
+                <div className="muted small">
+                  {m.device} · {m.voidReason} · {m.voidedBy}
+                </div>
+              </span>
+              <s className="times muted">{hhmm(m.time)}</s>
+            </div>
+            <div className="actions mark-actions">
+              <button className="link small" onClick={() => restore(m)} disabled={busy}>
+                Restaurar
+              </button>
+            </div>
           </li>
         ))}
       </ul>
 
-      {row.manualMarks.length > 0 && (
-        <>
-          <h2>Corregido a mano</h2>
-          <ul className="list compact">
-            {row.manualMarks.map((m) => (
-              <li key={m.id} className="card attendance">
-                <span className="grow">
-                  {hhmm(m.time)} · {m.note}
-                  <div className="muted small">Cargado por {m.by}</div>
-                </span>
-                <button className="link danger small" onClick={() => remove(m.id)}>
-                  Borrar
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      <form className="form card col wide" onSubmit={submit}>
+      <form className="form card col wide" onSubmit={add}>
         <strong>Agregar una marca que falta</strong>
         <div className="two">
           <label>
@@ -399,10 +485,9 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
           Motivo
           <input value={f.note} onChange={set('note')} placeholder="Ej.: se olvidó de marcar la salida" required minLength={3} maxLength={300} />
         </label>
-        {error && <p className="error">{error}</p>}
         <div className="actions">
           <button type="submit" disabled={busy}>
-            {busy ? 'Guardando…' : 'Guardar corrección'}
+            {busy ? 'Guardando…' : 'Agregar'}
           </button>
           <Link className="button secondary" to={`/novedades?empleado=${row.employeeId}&fecha=${date}`}>
             Justificar
@@ -411,10 +496,24 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
             Volver
           </button>
         </div>
-        <p className="muted small">
-          Las marcas de los lectores no se pueden borrar ni cambiar; la corrección queda registrada con tu nombre.
-        </p>
       </form>
+
+      <h2>Historial de cambios del día</h2>
+      {history.length === 0 ? (
+        <p className="muted small">Sin cambios: todo lo que se ve viene de los lectores.</p>
+      ) : (
+        <ul className="list compact history-list">
+          {history.map((h) => (
+            <li key={h.id} className="small">
+              <span className="muted">
+                {new Date(h.at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short', hour12: false })} · {h.userName}
+              </span>
+              <div>{h.summary}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small">Las marcas no se borran: lo anulado queda guardado y se puede restaurar.</p>
     </section>
   );
 }

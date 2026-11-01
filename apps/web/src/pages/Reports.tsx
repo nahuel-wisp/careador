@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { api } from '../api';
 import { useEntorno } from '../entorno';
 import { KIND_SHORT, shortDate, type AbsenceKind } from '../lib/schedules';
@@ -187,6 +188,9 @@ export function ReportsPage() {
     <section className="report">
       <div className="row no-print">
         <h1>Reportes</h1>
+        <Link className="link small" to="/historial">
+          Historial de cambios
+        </Link>
       </div>
 
       <div className="filters no-print">

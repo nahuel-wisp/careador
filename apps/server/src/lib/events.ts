@@ -6,8 +6,6 @@ import { linkImported } from './history';
 
 /** La primera vez se traen los últimos 35 días (lo que suele guardar el equipo y cubre el mes anterior). */
 const FIRST_SYNC_DAYS = 35;
-/** Se vuelve a pedir un rato hacia atrás por si el equipo guardó eventos con algo de demora (se deduplican). */
-const OVERLAP_MS = 10 * 60 * 1000;
 
 export interface EventSyncSummary {
   devices: number;
@@ -45,9 +43,8 @@ export class EventSync {
     for (const device of db.select().from(devices).where(eq(devices.enabled, true)).all()) {
       summary.devices++;
       const to = new Date();
-      const from = device.eventsSyncedUntil
-        ? new Date(device.eventsSyncedUntil.getTime() - OVERLAP_MS)
-        : new Date(to.getTime() - FIRST_SYNC_DAYS * 86_400_000);
+      // Sólo lo nuevo: desde donde quedó la última lectura buena (si falla, no avanza y se pide de nuevo).
+      const from = device.eventsSyncedUntil ?? new Date(to.getTime() - FIRST_SYNC_DAYS * 86_400_000);
       try {
         for await (const ev of driverFor(this.ctx, device).getEvents({ from, to })) {
           const res = db

@@ -137,9 +137,28 @@ describe('marcaciones y asistencia del día', () => {
     expect((await get())('1')).toMatchObject({ expected: { start: '08:00', end: '18:30' }, lateMin: 55, earlyMin: 25 });
     expect((await inject('POST', '/api/absences', { employeeId: id('1'), kind: 'horario_especial', dateFrom: day(-1), dateTo: day(-1) })).statusCode).toBe(400);
 
-    // Las marcas de los equipos no se borran; las manuales sí.
-    expect((await t.app.inject({ method: 'DELETE', url: `/api/marks/${mark.id}`, headers: t.headers })).statusCode).toBe(200);
-    expect((await get())('2')).toMatchObject({ review: true, manualMarks: [] });
+    // Nada se borra: la corrección se anula (deja de contar) y se puede restaurar.
+    expect((await inject('POST', `/api/marks/${mark.id}/void`, { reason: 'Cargada por error' })).statusCode).toBe(200);
+    let beto = (await get())('2');
+    expect(beto).toMatchObject({ review: true, manualMarks: [], voidedMarks: [expect.objectContaining({ id: mark.id, voidReason: 'Cargada por error', voidedBy: 'Dueño' })] });
+    expect((await inject('POST', `/api/marks/${mark.id}/restore`)).statusCode).toBe(200);
+    expect((await get())('2')).toMatchObject({ review: false, voidedMarks: [] });
+
+    // Cambiar la hora de una marca del equipo: la original queda anulada y se agrega la corregida.
+    beto = (await get())('2');
+    const changed = (await inject('PUT', `/api/marks/${beto.in.id}`, { time: '08:05', reason: 'El lector la tomó tarde' })).json();
+    beto = (await get())('2');
+    expect(new Date(beto.in.time).getMinutes()).toBe(5);
+    expect(beto.in).toMatchObject({ id: changed.id, manual: true, device: 'Carga manual' });
+    expect(beto.voidedMarks[0].voidReason).toContain('Cambiada a 08:05');
+    expect(beto.lateMin).toBe(0); // 08:05 está dentro de la tolerancia de 15 min
+
+    // Y todo queda en el historial de cambios, del día y de la persona.
+    const hist = (await inject('GET', `/api/audit?employeeId=${id('2')}&date=${day(-1)}`)).json();
+    expect(hist.map((h: { action: string }) => h.action)).toEqual(['marca.cambiar', 'marca.restaurar', 'marca.anular', 'marca.agregar']);
+    expect(hist[0]).toMatchObject({ userName: 'Dueño', employee: 'Ruiz, Beto' });
+    const all = (await inject('GET', '/api/audit')).json();
+    expect(all.map((h: { summary: string }) => h.summary)).toContain('Cargó enfermedad el ' + day(-1) + ': gripe');
 
     // Volver al horario de la sucursal desde hoy deja el historial de ayer intacto.
     await inject('PUT', `/api/employees/${id('2')}/schedule`, { scheduleId: null, from: day(0) });

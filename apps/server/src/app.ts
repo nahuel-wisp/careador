@@ -9,11 +9,13 @@ import type { Config } from './config';
 import { openDb, type Db } from './db';
 import { SecretBox } from './lib/crypto';
 import { EnrollmentSync, RETRY_MS } from './lib/enrollment';
+import { auditChanges } from './lib/audit';
 import { EventSync } from './lib/events';
 import { attendanceRoutes } from './routes/attendance';
 import { authRoutes } from './routes/auth';
 import { deviceRoutes } from './routes/devices';
 import { employeeRoutes } from './routes/employees';
+import { markRoutes } from './routes/marks';
 import { scheduleRoutes } from './routes/schedules';
 import { simulatorRoutes } from './routes/simulator';
 
@@ -41,7 +43,7 @@ export async function buildApp(config: Config) {
   ctx.sync = new EnrollmentSync(ctx);
   ctx.events = new EventSync(ctx);
 
-  // Cada tanto: reintenta lo pendiente (equipos que no respondían) y trae marcaciones nuevas.
+  // Una vez por hora: reintenta lo pendiente (equipos que no respondían) y trae marcaciones nuevas.
   const retry = setInterval(() => {
     ctx.sync.kick();
     ctx.events.kick();
@@ -68,6 +70,7 @@ export async function buildApp(config: Config) {
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, { global: false });
   await authRoutes(app, ctx);
+  auditChanges(app, ctx);
   // Archivos crudos: fotos faciales (JPEG), comprobantes de novedades (fotos o PDF) y Excel de HikCentral.
   app.addContentTypeParser(
     [
@@ -86,6 +89,7 @@ export async function buildApp(config: Config) {
   await employeeRoutes(app, ctx);
   await scheduleRoutes(app, ctx);
   await attendanceRoutes(app, ctx);
+  await markRoutes(app, ctx);
   await simulatorRoutes(app, ctx);
 
   // En producción el mismo servidor entrega la web (PWA).

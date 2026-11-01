@@ -54,7 +54,7 @@ export interface ReportRecord {
   missingIn: boolean;
   /** Una sola marca: entrada o salida es una sugerencia, queda a revisar. */
   review: boolean;
-  /** Alguna marca del día se cargó a mano (motivos en `manualNotes`). */
+  /** Correcciones a mano del día: marcas agregadas y anuladas, con motivo y quién. */
   manualNotes: string[];
   /** Marcas del medio ("HH:MM"), que no cuentan. */
   otherMarks: string[];
@@ -118,7 +118,10 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
         missingOut: e.missingOut,
         missingIn: e.missingIn,
         review: e.review,
-        manualNotes: e.manualMarks.map((m) => `${hhmm(m.time)} ${m.note} (${m.by})`),
+        manualNotes: [
+          ...e.manualMarks.map((m) => `agregada ${hhmm(m.time)} ${m.note} (${m.by})`),
+          ...e.voidedMarks.map((m) => `anulada ${hhmm(m.time)} ${m.voidReason} (${m.voidedBy})`),
+        ],
         otherMarks: e.otherMarks.map((m) => hhmm(m.time)),
         absences: e.absences.map((a) => a.kind),
       });
@@ -153,7 +156,7 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
       if (e.lateMin) (s.lateCount++, (s.lateMin += e.lateMin));
       if (e.earlyMin) (s.earlyCount++, (s.earlyMin += e.earlyMin));
       if (e.review) s.review++;
-      if (e.manualMarks.length) s.manualDays++;
+      if (e.manualMarks.length || e.voidedMarks.length) s.manualDays++;
       s.workedMin += e.workedMin;
     }
   }

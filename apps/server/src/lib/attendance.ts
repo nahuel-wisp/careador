@@ -29,6 +29,9 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
       deviceId: events.deviceId,
       source: events.source,
       raw: events.raw,
+      voidedAt: events.voidedAt,
+      voidedBy: events.voidedBy,
+      voidReason: events.voidReason,
     })
     .from(events)
     .where(and(eq(events.kind, 'access_granted'), gte(events.time, from), lt(events.time, to)))
@@ -38,12 +41,24 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
   const deviceNames = new Map<number | null, string>(deviceRows.map((d) => [d.id, d.name]));
   deviceNames.set(null, 'HikCentral (historial)');
   const deviceSite = new Map<number | null, number>(deviceRows.map((d) => [d.id, d.siteId]));
-  const markSource = (m: (typeof rows)[number]) => (m.source === 'manual' ? 'Carga manual' : deviceNames.get(m.deviceId));
+  type Row = (typeof rows)[number];
+  const markSource = (m: Row) => (m.source === 'manual' ? 'Carga manual' : deviceNames.get(m.deviceId));
+  /** Lo que la pantalla necesita de cada marca para mostrarla y corregirla. */
+  const view = (m: Row) => ({
+    id: m.id,
+    time: m.time,
+    device: markSource(m),
+    manual: m.source === 'manual',
+    note: m.source === 'manual' ? ((m.raw as { note?: string; by?: string } | null)?.note ?? null) : null,
+    by: m.source === 'manual' ? ((m.raw as { by?: string } | null)?.by ?? null) : null,
+  });
 
   const people = db.select().from(employees).orderBy(employees.lastName, employees.firstName).all();
   const result = people.flatMap((e) => {
-    const mine = rows.filter((r) => r.employeeId === e.id);
-    if (!e.active && !mine.length) return [];
+    const all = rows.filter((r) => r.employeeId === e.id);
+    if (!e.active && !all.length) return [];
+    // Las anuladas a mano no cuentan para nada, pero se muestran.
+    const mine = all.filter((r) => !r.voidedAt);
     // El personal rota entre sucursales: el día se mide con el horario de donde marcó (la primera vez).
     const workedSiteId = (mine[0] && deviceSite.get(mine[0].deviceId)) ?? e.siteId;
     const schedule = scheduleOf(e.id, workedSiteId);
@@ -72,14 +87,14 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
         siteId: e.siteId,
         workedSiteId,
         marks: mine.length,
-        in: first ? { time: first.time, device: markSource(first) } : null,
-        out: last ? { time: last.time, device: markSource(last) } : null,
+        in: first ? view(first) : null,
+        out: last ? view(last) : null,
         /** Marcas que no son ni la entrada ni la salida (pasó por el lector): se muestran, no cuentan. */
-        otherMarks: others.map((m) => ({ time: m.time, device: markSource(m) })),
-        /** Marcas cargadas a mano ese día (para mostrarlas y poder borrarlas). */
-        manualMarks: mine
-          .filter((m) => m.source === 'manual')
-          .map((m) => ({ id: m.id, time: m.time, ...(m.raw as { note: string; by: string }) })),
+        otherMarks: others.map(view),
+        /** Marcas cargadas a mano ese día (vigentes). */
+        manualMarks: mine.filter((m) => m.source === 'manual').map(view),
+        /** Marcas anuladas a mano, con motivo y quién. */
+        voidedMarks: all.filter((m) => m.voidedAt).map((m) => ({ ...view(m), voidedBy: m.voidedBy, voidReason: m.voidReason })),
         schedule: schedule ? { id: schedule.id, name: schedule.name } : null,
         expected,
         absences: novedades,
