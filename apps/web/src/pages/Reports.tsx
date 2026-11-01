@@ -227,7 +227,7 @@ export function ReportsPage() {
             {people.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.lastName}, {p.firstName}
-                {p.active ? '' : ' (baja)'}
+                {p.active ? '' : ' · baja'}
               </option>
             ))}
           </select>
@@ -325,8 +325,8 @@ export function ReportsPage() {
                           {s.expectedDays ? <span className="muted">/{s.expectedDays}</span> : null}
                         </td>
                         <td>{hours(s.workedMin)}</td>
-                        <td className={s.lateCount ? 'bad' : ''}>{s.lateCount ? `${s.lateCount} (${s.lateMin}′)` : '–'}</td>
-                        <td className={s.earlyCount ? 'bad' : ''}>{s.earlyCount ? `${s.earlyCount} (${s.earlyMin}′)` : '–'}</td>
+                        <td className={s.lateCount ? 'bad' : ''}>{s.lateCount ? `${s.lateCount} · ${s.lateMin} min` : '–'}</td>
+                        <td className={s.earlyCount ? 'bad' : ''}>{s.earlyCount ? `${s.earlyCount} · ${s.earlyMin} min` : '–'}</td>
                         <td className={s.absentDays ? 'bad' : ''}>{s.absentDays || '–'}</td>
                         <td className={s.review ? 'warn' : ''}>{s.review || '–'}</td>
                         <td className="small">
@@ -339,10 +339,6 @@ export function ReportsPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="muted small">
-                Días: trabajados / esperados según el horario. Tarde y salió antes: cantidad de veces (minutos en total,
-                fuera de la tolerancia).
-              </p>
             </>
           ) : (
             <div className="table-wrap">

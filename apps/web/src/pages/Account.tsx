@@ -33,8 +33,7 @@ export function ChangePassword({ forced = false, onDone }: { forced?: boolean; o
     <form className={forced ? 'form' : 'form card col wide'} onSubmit={submit}>
       {forced ? (
         <p className="muted">
-          Tu contraseña es provisoria. Elegí una nueva para empezar a usar la app (al menos 10 caracteres; puede ser una
-          frase).
+          Tu contraseña es provisoria. Elegí una nueva de al menos 10 caracteres para empezar a usar la app.
         </p>
       ) : (
         <strong>Cambiar mi contraseña</strong>

@@ -39,7 +39,7 @@ describe('historial importado de HikCentral', () => {
 
     const day = (await inject('GET', '/api/attendance?date=2026-09-30')).json();
     const ana = day.employees.find((e: { name: string }) => e.name === 'ANA, Gomez');
-    expect(ana).toMatchObject({ marks: 2, in: { device: 'HikCentral (historial)' } });
+    expect(ana).toMatchObject({ marks: 2, in: { device: 'HikCentral' } });
     expect(new Date(ana.in.time).getHours()).toBe(7);
     expect(new Date(ana.out.time).getMinutes()).toBe(1); // 18:01
     expect(day.unknownCodes).toEqual([]);

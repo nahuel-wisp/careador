@@ -48,7 +48,7 @@ export async function userRoutes(app: FastifyInstance, ctx: AppContext) {
       .values({ username: b.username, name: b.name, role: b.role, passwordHash: await hashPassword(b.password), mustChangePassword: true })
       .returning()
       .all();
-    audit(ctx, req, { action: 'usuario.crear', summary: `Creó el usuario ${b.name} (${b.username}, ${ROLE[b.role]})` });
+    audit(ctx, req, { action: 'usuario.crear', summary: `Creó el usuario ${b.name}: «${b.username}», ${ROLE[b.role]}` });
     return reply.code(201).send(view(u!));
   });
 

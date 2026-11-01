@@ -135,7 +135,7 @@ export function PersonalPage() {
       <div className="actions footer-actions">
         {bajas > 0 && (
           <button className="link" onClick={() => setShowBajas(!showBajas)}>
-            {showBajas ? 'Ver activos' : `Ver bajas (${bajas})`}
+            {showBajas ? 'Ver activos' : `Ver bajas: ${bajas}`}
           </button>
         )}
         {devices.length > 0 && (
@@ -175,7 +175,7 @@ function SyncLine({ employee, devices }: { employee: Employee; devices: Device[]
   const errors = states.filter((s) => s.status === 'error');
   if (errors.length) {
     const names = errors.map((s) => devices.find((d) => d.id === s.deviceId)?.name ?? `#${s.deviceId}`);
-    return <div className="error small">No se pudo cargar en: {names.join(', ')} (se reintenta solo)</div>;
+    return <div className="error small">No se pudo cargar en {names.join(', ')}; se reintenta cada hora</div>;
   }
   const synced = states.filter((s) => s.status === 'synced');
   if (synced.length < devices.length) return <div className="muted small">Enviando a los equipos…</div>;
@@ -319,14 +319,14 @@ function EmployeeForm({
           <input value={f.lastName} onChange={set('lastName')} autoComplete="off" required />
         </label>
         <label>
-          DNI (opcional)
+          DNI
           <input value={f.documentNumber} onChange={set('documentNumber')} inputMode="numeric" autoComplete="off" />
         </label>
         {sites.length > 0 && (
           <label>
             Sucursal
             <select value={f.siteId} onChange={set('siteId')}>
-              <option value="">Sin sucursal (dueños: no se controla horario)</option>
+              <option value="">Sin sucursal</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -344,7 +344,7 @@ function EmployeeForm({
                 {(() => {
                   const id = sites.find((s) => String(s.id) === f.siteId)?.scheduleId;
                   const name = schedules.find((s) => s.id === id)?.name;
-                  return name ? ` (${name})` : ' (sin horario)';
+                  return name ? `: ${name}` : '';
                 })()}
               </option>
               {schedules.map((s) => (
@@ -359,8 +359,8 @@ function EmployeeForm({
           <p className="muted small">Legajo {employee.code}</p>
         ) : (
           <label>
-            Legajo (opcional: si queda vacío va el siguiente número)
-            <input value={f.code} onChange={set('code')} autoCapitalize="none" autoComplete="off" />
+            Legajo
+            <input value={f.code} onChange={set('code')} placeholder="Siguiente número" autoCapitalize="none" autoComplete="off" />
           </label>
         )}
         {devices.length === 0 && (

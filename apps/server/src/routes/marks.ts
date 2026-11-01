@@ -125,7 +125,7 @@ export async function markRoutes(app: FastifyInstance, ctx: AppContext) {
     db.update(events).set({ voidedAt: null, voidedBy: null, voidReason: null }).where(eq(events.id, mark.id)).run();
     audit(ctx, req, {
       action: 'marca.restaurar',
-      summary: `Restauró la marca de las ${timeOf(mark.time)} (estaba anulada: ${mark.voidReason ?? 'sin motivo'})`,
+      summary: `Restauró la marca de las ${timeOf(mark.time)}, anulada por: ${mark.voidReason ?? 'sin motivo'}`,
       employeeId: mark.employeeId,
       date: mark.time.toLocaleDateString('sv'),
       detail: { markId: mark.id },

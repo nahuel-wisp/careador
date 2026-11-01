@@ -52,8 +52,8 @@ export function UsersPage() {
         {!adding && <button onClick={() => setAdding(true)}>Agregar</button>}
       </div>
       <p className="muted small">
-        Encargado: Personal, Asistencia, Novedades, Horarios y Reportes. Administrador: además Equipos y Usuarios. La
-        contraseña que pongas es provisoria: la persona la cambia al entrar.
+        Encargado: Personal, Asistencia, Novedades, Horarios y Reportes. Administrador: todo, incluidos Equipos y
+        Usuarios. La contraseña que pongas es provisoria y se cambia al entrar.
       </p>
       {error && <p className="error">{error}</p>}
       {adding && (
@@ -78,7 +78,7 @@ export function UsersPage() {
           <li key={u.id} className="card col">
             <div>
               <strong>{u.name}</strong>
-              {u.id === me?.id && <span className="muted small"> (vos)</span>}
+              {u.id === me?.id && <span className="muted small"> · vos</span>}
               <div className="muted small">
                 usuario «{u.username}» · {ROLE[u.role]}
               </div>
@@ -121,7 +121,7 @@ export function UsersPage() {
       </ul>
       {inactive > 0 && (
         <button className="link" onClick={() => setShowInactive(!showInactive)}>
-          {showInactive ? 'Ver activos' : `Ver desactivados (${inactive})`}
+          {showInactive ? 'Ver activos' : `Ver desactivados: ${inactive}`}
         </button>
       )}
     </section>
@@ -154,8 +154,9 @@ function UserForm({ onDone }: { onDone(): void }) {
         <input value={f.name} onChange={set('name')} required autoComplete="off" />
       </label>
       <label>
-        Usuario (para entrar; sin espacios, ej.: pilar)
+        Usuario
         <input
+          placeholder="pilar"
           value={f.username}
           onChange={set('username')}
           required
@@ -170,12 +171,12 @@ function UserForm({ onDone }: { onDone(): void }) {
       <label>
         Rol
         <select value={f.role} onChange={set('role')}>
-          <option value="manager">Encargado (dueños)</option>
+          <option value="manager">Encargado</option>
           <option value="admin">Administrador</option>
         </select>
       </label>
       <label>
-        Contraseña provisoria (al menos 10 caracteres; se la pasás y la cambia al entrar)
+        Contraseña provisoria
         <input value={f.password} onChange={set('password')} minLength={10} required autoComplete="off" />
       </label>
       {error && <p className="error">{error}</p>}

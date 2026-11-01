@@ -56,7 +56,7 @@ export function SchedulesPage() {
       </div>
       {error && <p className="error">{error}</p>}
       {schedules?.length === 0 && (
-        <p className="muted">Todavía no hay horarios. Cargá uno por sucursal (ej. «Arsa 1»: lunes a viernes 9 a 18 y sábados 9 a 13).</p>
+        <p className="muted">Todavía no hay horarios. Cargá uno por sucursal.</p>
       )}
       <ul className="list">
         {schedules?.map((s) => (
@@ -78,7 +78,7 @@ export function SchedulesPage() {
         <>
           <h2>Horario de cada sucursal</h2>
           <p className="muted small">
-            Lo tiene todo el personal de la sucursal, salvo quien tenga uno propio (se elige en Personal).
+            Lo tiene todo el personal de la sucursal, salvo quien tenga uno propio en Personal.
           </p>
           <div className="card col">
             {sites.map((site) => (
@@ -167,16 +167,15 @@ function ScheduleForm({ schedule, onDone }: { schedule: Schedule | null; onDone(
           })}
         </div>
         <label>
-          Tolerancia de llegada (minutos)
+          Minutos de tolerancia para llegar
           <input type="number" min={0} max={240} value={late} onChange={(e) => setLate(e.target.value)} inputMode="numeric" />
         </label>
         <label>
-          Tolerancia de salida (minutos)
+          Minutos de tolerancia para salir
           <input type="number" min={0} max={240} value={early} onChange={(e) => setEarly(e.target.value)} inputMode="numeric" />
         </label>
         <p className="muted small">
-          Llegar hasta esos minutos tarde (o irse esos minutos antes) no cuenta. El almuerzo no se descuenta: las horas
-          son de la primera a la última marca.
+          El almuerzo no se descuenta: las horas van de la primera a la última marca.
         </p>
         {error && <p className="error">{error}</p>}
         <div className="actions">

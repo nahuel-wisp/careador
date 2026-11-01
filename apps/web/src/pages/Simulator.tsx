@@ -121,7 +121,7 @@ export function SimulatorPage() {
       )}
 
       <label className="form">
-        <span className="muted">Hora de la marcación (vacío = ahora)</span>
+        <span className="muted">Hora de la marcación</span>
         <input type="datetime-local" value={customTime} onChange={(e) => setCustomTime(e.target.value)} />
       </label>
 
@@ -221,8 +221,8 @@ function AddPerson({ deviceId, onDone }: { deviceId: string; onDone(): void }) {
   return (
     <form className="form card col" onSubmit={submit}>
       <p className="muted small">
-        Alta directa en el lector simulado (como enrolar desde la pantalla del equipo). Las altas normales se hacen
-        desde Personal.
+        Alta directa en el lector simulado, como desde la pantalla del equipo. Las altas normales se hacen desde
+        Personal.
       </p>
       <label>
         Número de empleado
@@ -233,7 +233,7 @@ function AddPerson({ deviceId, onDone }: { deviceId: string; onDone(): void }) {
         <input value={name} onChange={(e) => setName(e.target.value)} required />
       </label>
       <label>
-        Foto (opcional)
+        Foto
         <input ref={fileRef} type="file" accept="image/*" capture="user" />
       </label>
       {error && <p className="error">{error}</p>}

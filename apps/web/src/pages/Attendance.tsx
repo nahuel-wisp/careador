@@ -282,8 +282,8 @@ function HistoryImport({ onDone }: { onDone(): void }) {
     <div className="card col history">
       <strong>Historial de HikCentral</strong>
       <p className="muted small">
-        El Excel «Registros de entradas y salidas» que exporta HikCentral (el mismo informe de siempre), del período
-        que quieras. Subirlo de nuevo o con meses que se pisan no duplica nada.
+        El Excel «Registros de entradas y salidas» que exporta HikCentral, del período que quieras. Subirlo de nuevo no
+        duplica nada.
       </p>
       <label className="button secondary">
         {busy ? 'Importando…' : 'Subir Excel de HikCentral'}
@@ -299,7 +299,7 @@ function HistoryImport({ onDone }: { onDone(): void }) {
             <span className="muted">
               {' '}
               Todavía no están en Personal: {result.unmatched.map((u) => u.name).join(', ')}. Sus marcas quedan
-              guardadas y se les asignan solas cuando los cargues (o los importes de un equipo).
+              guardadas y se les asignan cuando se carguen.
             </span>
           )}
         </p>
@@ -329,9 +329,9 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
   }, [row]);
 
   const marks = [
-    row.in && { ...row.in, label: row.review ? 'Entrada (sugerida)' : 'Entrada' },
-    ...row.otherMarks.map((m) => ({ ...m, label: 'Pasó por el lector (no cuenta)' })),
-    row.out && { ...row.out, label: row.review ? 'Salida (sugerida)' : 'Salida' },
+    row.in && { ...row.in, label: row.review ? 'Entrada sugerida' : 'Entrada' },
+    ...row.otherMarks.map((m) => ({ ...m, label: 'Marca intermedia' })),
+    row.out && { ...row.out, label: row.review ? 'Salida sugerida' : 'Salida' },
   ].filter((m): m is Mark & { label: string } => !!m);
 
   async function run(fn: () => Promise<unknown>) {
@@ -422,7 +422,7 @@ function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; o
                 <input
                   value={editing.reason}
                   onChange={(e) => setEditing({ ...editing, reason: e.target.value })}
-                  placeholder={editing.mode === 'cambiar' ? 'Motivo del cambio' : 'Motivo (ej.: pasó por el lector sin querer)'}
+                  placeholder="Motivo"
                   required
                   minLength={3}
                   maxLength={300}

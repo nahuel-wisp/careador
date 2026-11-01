@@ -86,7 +86,7 @@ export async function parseHikcentralRecords(file: Buffer): Promise<RecordRow[]>
     });
   }
   if (!rows.length) {
-    throw Object.assign(new Error('No parece el Excel «Registros de entradas y salidas» de HikCentral (no encontré las columnas Nombre, Apellido, Fecha, Entrada y Salida)'), {
+    throw Object.assign(new Error('No parece el Excel «Registros de entradas y salidas» de HikCentral: faltan las columnas Nombre, Apellido, Fecha, Entrada y Salida'), {
       statusCode: 400,
     });
   }

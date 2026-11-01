@@ -36,10 +36,10 @@ export const KIND_LABEL: Record<AbsenceKind, string> = {
   franco: 'Franco / día libre',
   licencia: 'Licencia',
   enfermedad: 'Enfermedad / certificado médico',
-  feriado: 'Feriado (para todos)',
+  feriado: 'Feriado',
   permiso_tarde: 'Permiso para llegar tarde',
   permiso_salida: 'Permiso para salir antes',
-  horario_especial: 'Horario especial (otro horario esos días)',
+  horario_especial: 'Horario especial',
   otro: 'Otro motivo',
 };
 

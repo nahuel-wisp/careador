@@ -39,7 +39,7 @@ const absenceInput = z
   .refine((a) => a.dateFrom <= a.dateTo, 'La fecha hasta tiene que ser igual o posterior a la desde')
   .refine(
     (a) => a.kind !== 'horario_especial' || (a.startTime && a.endTime && a.startTime < a.endTime),
-    'El horario especial necesita entrada y salida (la salida después de la entrada)',
+    'El horario especial necesita entrada y salida, con la salida después de la entrada',
   )
   .transform((a) => (a.kind === 'horario_especial' ? a : { ...a, startTime: null, endTime: null }))
   .refine((a) => a.employeeId !== null || a.kind === 'feriado', 'Sólo los feriados pueden ser para todos');
@@ -238,7 +238,7 @@ export async function scheduleRoutes(app: FastifyInstance, ctx: AppContext) {
     if (!FILE_TYPES.includes(mime) || !Buffer.isBuffer(data)) {
       return reply.code(400).send({ error: 'Sólo fotos o PDF' });
     }
-    if (data.length > MAX_FILE_BYTES) return reply.code(400).send({ error: 'Archivo demasiado grande (máx. 4 MB)' });
+    if (data.length > MAX_FILE_BYTES) return reply.code(400).send({ error: 'El archivo pesa más de 4 MB' });
     const fileName = (req.query.name ?? 'comprobante').replace(/[^\p{L}\p{N} ._-]/gu, '').slice(0, 100) || 'comprobante';
     const [row] = db
       .insert(absenceFiles)

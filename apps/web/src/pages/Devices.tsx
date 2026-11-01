@@ -57,7 +57,7 @@ export function DevicesPage() {
   }
 
   async function remove(d: Device) {
-    if (!confirm(`¿Quitar "${d.name}" de la app? (No borra nada en el equipo)`)) return;
+    if (!confirm(`¿Quitar "${d.name}" de la app? En el equipo no se borra nada.`)) return;
     await api(`/devices/${d.id}`, { method: 'DELETE' }).catch((e: Error) => setError(e.message));
     load();
   }
@@ -72,7 +72,7 @@ export function DevicesPage() {
       );
       alert(
         `Listo: ${r.created} nuevos, ${r.existing} ya estaban, ${r.faces} fotos traídas` +
-          (r.facesFailed ? ` (${r.facesFailed} no se pudieron bajar)` : '') +
+          (r.facesFailed ? `, ${r.facesFailed} sin foto` : '') +
           '. Revisá nombres y fotos en Personal.',
       );
     } catch (e) {
@@ -240,7 +240,7 @@ function DeviceForm({ sites, onCancel, onSaved }: { sites: Site[]; onCancel(): v
         </select>
       </label>
       <label>
-        {isSim ? 'Identificador del simulador' : 'IP o host (con puerto si no es 80)'}
+        {isSim ? 'Identificador del simulador' : 'IP o host'}
         <input
           value={f.host}
           onChange={set('host')}
@@ -263,7 +263,7 @@ function DeviceForm({ sites, onCancel, onSaved }: { sites: Site[]; onCancel(): v
       )}
       <label className="check">
         <input type="checkbox" checked={f.readOnly} onChange={set('readOnly')} />
-        Sólo lectura (no enviar cambios a este equipo)
+        Sólo lectura
       </label>
       {error && <p className="error">{error}</p>}
       <div className="actions">
@@ -332,7 +332,7 @@ function EditDeviceForm({ device, sites, onDone }: { device: Device; sites: Site
       {!isSim && (
         <>
           <label>
-            IP o host (con puerto si no es 80)
+            IP o host
             <input value={f.host} onChange={(e) => setF({ ...f, host: e.target.value })} autoCapitalize="none" required />
           </label>
           <label>
@@ -340,21 +340,21 @@ function EditDeviceForm({ device, sites, onDone }: { device: Device; sites: Site
             <input value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} autoCapitalize="none" required />
           </label>
           <label>
-            Contraseña (dejala vacía para no cambiarla)
+            Contraseña nueva
             <input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="off" />
           </label>
         </>
       )}
       <label className="check">
         <input type="checkbox" checked={f.readOnly} onChange={(e) => setF({ ...f, readOnly: e.target.checked })} />
-        Sólo lectura (no enviar cambios a este equipo)
+        Sólo lectura
       </label>
       {entorno?.equiposSoloLectura && !isSim && (
         <p className="warn small">En este entorno los equipos reales siempre quedan en sólo lectura.</p>
       )}
       <label className="check">
         <input type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
-        Activo (si no, la app no lo usa: ni lee marcaciones ni carga personas)
+        Activo
       </label>
       {error && <p className="error">{error}</p>}
       <div className="actions">

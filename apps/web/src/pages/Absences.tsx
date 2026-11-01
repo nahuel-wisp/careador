@@ -270,12 +270,12 @@ function AbsenceForm({
           </div>
         )}
         <label>
-          Nota (opcional)
+          Nota
           <input value={f.note} onChange={set('note')} placeholder="Ej.: turno médico, llega 10:30" maxLength={500} />
         </label>
 
         <div className="files">
-          <span className="muted small">Comprobantes (certificado, nota firmada…)</span>
+          <span className="muted small">Comprobantes</span>
           {files.map((file) => (
             <div key={file.id} className="file">
               <a href={`/api/absence-files/${file.id}`} target="_blank" rel="noreferrer">
@@ -288,7 +288,7 @@ function AbsenceForm({
           ))}
           {pending.map((file, i) => (
             <div key={i} className="file muted">
-              ⏳ {file.name} (se sube al guardar)
+              ⏳ {file.name}
             </div>
           ))}
           <label className="button secondary">

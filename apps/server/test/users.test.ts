@@ -68,7 +68,7 @@ describe('usuarios, roles y contraseña provisoria', () => {
     const hist = (await admin('GET', '/api/audit')).json().map((h: { summary: string }) => h.summary);
     expect(hist).toEqual(
       expect.arrayContaining([
-        'Creó el usuario Ana (ana, encargado)',
+        'Creó el usuario Ana: «ana», encargado',
         'Ana cambió su contraseña',
         'Usuario Ana: lo desactivó',
         'Le puso una contraseña provisoria a Ana',

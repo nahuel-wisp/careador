@@ -78,7 +78,7 @@ const LABELS: Record<string, (b: Body) => string> = {
         ? 'Pasó un equipo a sólo lectura'
         : b.enabled === false
           ? 'Desactivó un equipo'
-          : `Editó un equipo${b.password ? ' (cambió la contraseña)' : ''}`,
+          : `Editó un equipo${b.password ? ' y cambió la contraseña' : ''}`,
   'POST /api/history/hikcentral': () => 'Importó el historial de HikCentral',
 };
 

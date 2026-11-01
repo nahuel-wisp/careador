@@ -71,7 +71,7 @@ async function main() {
       db.insert(appUsers)
         .values({ username, name, role, passwordHash: await hashPassword(password), mustChangePassword: provisoria })
         .run();
-      audit(ctx, null, { action: 'usuario.crear', summary: `Creó el usuario ${name} (${username}, ${role}) por consola` });
+      audit(ctx, null, { action: 'usuario.crear', summary: `Creó el usuario ${name}: «${username}», ${role}, por consola` });
       console.log(`Usuario ${username} creado (${role})${provisoria ? ', con contraseña provisoria' : ''}.`);
       break;
     }
@@ -225,7 +225,7 @@ async function main() {
         .run();
       // Las fotos de HikCentral ya las tienen los equipos: sólo se mandan si se pide.
       if (args.includes('--enviar')) markPending(ctx, emp.id, { face: true });
-      audit(ctx, null, { action: 'personal.foto', summary: `Cargó la foto (${Math.round(jpeg.length / 1024)} KB) por consola`, employeeId: emp.id });
+      audit(ctx, null, { action: 'personal.foto', summary: 'Cargó la foto por consola', employeeId: emp.id });
       console.log(`  ${emp.lastName}, ${emp.firstName}: foto cargada (${Math.round(jpeg.length / 1024)} KB)`);
       break;
     }

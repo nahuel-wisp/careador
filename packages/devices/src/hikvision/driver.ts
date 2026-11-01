@@ -176,7 +176,7 @@ export class HikvisionDriver implements DeviceDriver {
     const pic = await this.client.request({ method: 'GET', path: pathname + search });
     if (!pic.ok) {
       await pic.body?.cancel();
-      throw new DeviceError(`No se pudo bajar la foto de ${personId} (HTTP ${pic.status})`, 'device_error');
+      throw new DeviceError(`No se pudo bajar la foto de ${personId}: HTTP ${pic.status}`, 'device_error');
     }
     return new Uint8Array(await pic.arrayBuffer());
   }

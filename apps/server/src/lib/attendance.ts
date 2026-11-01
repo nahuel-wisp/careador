@@ -39,7 +39,7 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
     .all();
   const deviceRows = db.select({ id: devices.id, name: devices.name, siteId: devices.siteId }).from(devices).all();
   const deviceNames = new Map<number | null, string>(deviceRows.map((d) => [d.id, d.name]));
-  deviceNames.set(null, 'HikCentral (historial)');
+  deviceNames.set(null, 'HikCentral');
   const deviceSite = new Map<number | null, number>(deviceRows.map((d) => [d.id, d.siteId]));
   type Row = (typeof rows)[number];
   const markSource = (m: Row) => (m.source === 'manual' ? 'Carga manual' : deviceNames.get(m.deviceId));

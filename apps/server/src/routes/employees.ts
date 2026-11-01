@@ -106,7 +106,7 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
     if (!Buffer.isBuffer(jpeg) || jpeg[0] !== 0xff || jpeg[1] !== 0xd8) {
       return reply.code(400).send({ error: 'La foto tiene que ser JPEG' });
     }
-    if (jpeg.length > MAX_FACE_BYTES) return reply.code(400).send({ error: 'Foto demasiado grande (máx. 1 MB)' });
+    if (jpeg.length > MAX_FACE_BYTES) return reply.code(400).send({ error: 'La foto pesa más de 1 MB' });
     db.insert(employeeFaces)
       .values({ employeeId: id, jpeg })
       .onConflictDoUpdate({ target: employeeFaces.employeeId, set: { jpeg, updatedAt: new Date() } })

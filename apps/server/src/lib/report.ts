@@ -119,8 +119,8 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
         missingIn: e.missingIn,
         review: e.review,
         manualNotes: [
-          ...e.manualMarks.map((m) => `agregada ${hhmm(m.time)} ${m.note} (${m.by})`),
-          ...e.voidedMarks.map((m) => `anulada ${hhmm(m.time)} ${m.voidReason} (${m.voidedBy})`),
+          ...e.manualMarks.map((m) => `agregada ${hhmm(m.time)}, ${m.note}, por ${m.by}`),
+          ...e.voidedMarks.map((m) => `anulada ${hhmm(m.time)}, ${m.voidReason}, por ${m.voidedBy}`),
         ],
         otherMarks: e.otherMarks.map((m) => hhmm(m.time)),
         absences: e.absences.map((a) => a.kind),
