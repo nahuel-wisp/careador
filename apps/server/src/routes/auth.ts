@@ -16,7 +16,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export interface SessionUser {
   id: number;
-  email: string;
+  username: string;
   name: string;
   role: 'admin' | 'manager';
   /** Tiene contraseña provisoria: sólo puede cambiarla (o salir). */
@@ -29,10 +29,19 @@ declare module 'fastify' {
   }
 }
 
-const loginInput = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(1),
-});
+/** Usuario para entrar: sin espacios (puede ser un nombre como «pilar» o un email, que es lo que había antes). */
+export const usernameRule = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, 'El usuario tiene que tener al menos 3 caracteres')
+  .max(60)
+  .regex(/^[a-z0-9._@-]+$/, 'Usuario: letras, números, punto, guion o @, sin espacios ni acentos');
+
+// `email` se acepta por si queda abierta una versión vieja de la app en algún celular.
+const loginInput = z
+  .object({ username: z.string().optional(), email: z.string().optional(), password: z.string().min(1) })
+  .transform((b) => ({ username: (b.username ?? b.email ?? '').trim().toLowerCase(), password: b.password }));
 
 /** Rutas de la API que no requieren sesión. */
 const PUBLIC_API = new Set(['/api/health', '/api/auth/login']);
@@ -56,7 +65,7 @@ const passwordRule = z.string().min(10, 'La contraseña tiene que tener al menos
 
 export const sessionUser = (u: typeof appUsers.$inferSelect): SessionUser => ({
   id: u.id,
-  email: u.email,
+  username: u.username,
   name: u.name,
   role: u.role,
   mustChangePassword: u.mustChangePassword,
@@ -126,11 +135,11 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext) {
     '/api/auth/login',
     { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } },
     async (req, reply) => {
-      const { email, password } = loginInput.parse(req.body);
-      const user = db.select().from(appUsers).where(eq(appUsers.email, email)).get();
+      const { username, password } = loginInput.parse(req.body);
+      const user = db.select().from(appUsers).where(eq(appUsers.username, username)).get();
       const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
       if (!user || !ok || !user.active) {
-        return reply.code(401).send({ error: 'Email o contraseña incorrectos' });
+        return reply.code(401).send({ error: 'Usuario o contraseña incorrectos' });
       }
 
       const token = randomBytes(32).toString('base64url');

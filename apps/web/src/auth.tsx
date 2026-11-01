@@ -3,7 +3,7 @@ import { api, setUnauthorizedHandler } from './api';
 
 export interface User {
   id: number;
-  email: string;
+  username: string;
   name: string;
   role: 'admin' | 'manager';
   /** Contraseña provisoria: la app sólo muestra el cambio de contraseña. */
@@ -13,7 +13,7 @@ export interface User {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login(email: string, password: string): Promise<void>;
+  login(username: string, password: string): Promise<void>;
   logout(): Promise<void>;
   /** Actualiza el usuario después de cambiar la contraseña. */
   setUser(u: User): void;
@@ -33,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    setUser(await api<User>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }));
+  const login = useCallback(async (username: string, password: string) => {
+    setUser(await api<User>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }));
   }, []);
 
   const logout = useCallback(async () => {

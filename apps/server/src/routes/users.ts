@@ -5,6 +5,7 @@ import type { AppContext } from '../app';
 import { appUsers, sessions } from '../db/schema';
 import { audit } from '../lib/audit';
 import { hashPassword } from '../lib/password';
+import { usernameRule } from './auth';
 
 const password = z.string().min(10, 'La contraseña tiene que tener al menos 10 caracteres').max(200);
 const role = z.enum(['admin', 'manager']);
@@ -13,7 +14,7 @@ const ROLE: Record<string, string> = { admin: 'administrador', manager: 'encarga
 /** Lo que se muestra de un usuario (nunca el hash). */
 const view = (u: typeof appUsers.$inferSelect) => ({
   id: u.id,
-  email: u.email,
+  username: u.username,
   name: u.name,
   role: u.role,
   active: u.active,
@@ -37,24 +38,30 @@ export async function userRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.post('/api/users', async (req, reply) => {
     const b = z
-      .object({ email: z.string().trim().toLowerCase().email('Email inválido'), name: z.string().trim().min(1).max(80), role, password })
+      .object({ username: usernameRule, name: z.string().trim().min(1).max(80), role, password })
       .parse(req.body);
-    if (db.select().from(appUsers).where(eq(appUsers.email, b.email)).get()) {
-      return reply.code(409).send({ error: 'Ya hay un usuario con ese email' });
+    if (db.select().from(appUsers).where(eq(appUsers.username, b.username)).get()) {
+      return reply.code(409).send({ error: 'Ya hay alguien con ese usuario' });
     }
     const [u] = db
       .insert(appUsers)
-      .values({ email: b.email, name: b.name, role: b.role, passwordHash: await hashPassword(b.password), mustChangePassword: true })
+      .values({ username: b.username, name: b.name, role: b.role, passwordHash: await hashPassword(b.password), mustChangePassword: true })
       .returning()
       .all();
-    audit(ctx, req, { action: 'usuario.crear', summary: `Creó el usuario ${b.name} (${b.email}, ${ROLE[b.role]})` });
+    audit(ctx, req, { action: 'usuario.crear', summary: `Creó el usuario ${b.name} (${b.username}, ${ROLE[b.role]})` });
     return reply.code(201).send(view(u!));
   });
 
-  /** Nombre, rol o activo. No se puede sacar a uno mismo el rol de admin ni desactivarse. */
+  /** Usuario, nombre, rol o activo. No se puede sacar a uno mismo el rol de admin ni desactivarse. */
   app.patch<{ Params: { id: string } }>('/api/users/:id', async (req, reply) => {
-    const b = z.object({ name: z.string().trim().min(1).max(80), role, active: z.boolean() }).partial().parse(req.body);
+    const b = z
+      .object({ username: usernameRule, name: z.string().trim().min(1).max(80), role, active: z.boolean() })
+      .partial()
+      .parse(req.body);
     const u = get(Number(req.params.id));
+    if (b.username && b.username !== u.username && db.select().from(appUsers).where(eq(appUsers.username, b.username)).get()) {
+      return reply.code(409).send({ error: 'Ya hay alguien con ese usuario' });
+    }
     if (u.id === req.user!.id && (b.active === false || b.role === 'manager')) {
       return reply.code(400).send({ error: 'No podés desactivarte ni sacarte el rol de administrador a vos mismo' });
     }
@@ -64,6 +71,7 @@ export async function userRoutes(app: FastifyInstance, ctx: AppContext) {
       b.active === false ? 'lo desactivó' : b.active === true ? 'lo reactivó' : null,
       b.role && b.role !== u.role ? `rol ${ROLE[b.role]}` : null,
       b.name && b.name !== u.name ? `nombre «${b.name}»` : null,
+      b.username && b.username !== u.username ? `usuario «${b.username}»` : null,
     ].filter(Boolean);
     audit(ctx, req, { action: 'usuario.editar', summary: `Usuario ${u.name}: ${what.join(', ') || 'sin cambios'}` });
     return view(row!);

@@ -3,7 +3,7 @@ import { useAuth } from '../auth';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -13,7 +13,7 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
     } finally {
@@ -25,17 +25,16 @@ export function LoginPage() {
     <main className="login">
       <img src="/icon.svg" alt="" width={72} height={72} />
       <h1>Control Horario</h1>
-      <p className="muted">Ingresos y egresos del personal</p>
       <form onSubmit={submit} className="form">
         <label>
-          Email
+          Usuario
           <input
-            type="email"
             autoComplete="username"
-            inputMode="email"
             autoCapitalize="none"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoCorrect="off"
+            spellCheck={false}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </label>

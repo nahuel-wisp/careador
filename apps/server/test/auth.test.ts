@@ -16,7 +16,7 @@ beforeAll(async () => {
   const seed = openDb(config.dataDir);
   seed
     .insert(appUsers)
-    .values({ email: 'duenio@example.com', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
+    .values({ username: 'duenio', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
     .run();
   seed.$client.close();
   app = await buildApp({ ...config });
@@ -29,7 +29,7 @@ afterAll(async () => {
 });
 
 const login = (password: string) =>
-  app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'Duenio@Example.com', password } });
+  app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: ' Duenio ', password } });
 
 describe('auth', () => {
   it('bloquea la API sin sesión pero deja pasar health', async () => {
@@ -48,7 +48,7 @@ describe('auth', () => {
     expect(cookie.httpOnly).toBe(true);
     const headers = { cookie: `careador_sesion=${cookie.value}` };
 
-    expect((await app.inject({ url: '/api/auth/me', headers })).json()).toMatchObject({ email: 'duenio@example.com' });
+    expect((await app.inject({ url: '/api/auth/me', headers })).json()).toMatchObject({ username: 'duenio' });
     expect((await app.inject({ url: '/api/devices', headers })).statusCode).toBe(200);
 
     await app.inject({ method: 'POST', url: '/api/auth/logout', headers, payload: {} });
@@ -60,7 +60,7 @@ describe('auth', () => {
       method: 'POST',
       url: '/api/auth/login',
       headers: { origin: 'https://malicioso.example' },
-      payload: { email: 'duenio@example.com', password: 'una-clave-larga' },
+      payload: { username: 'duenio', password: 'una-clave-larga' },
     });
     expect(res.statusCode).toBe(403);
   });

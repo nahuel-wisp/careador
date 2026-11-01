@@ -87,7 +87,7 @@ export function AccountPage() {
     <section>
       <h1>Mi cuenta</h1>
       <p className="muted">
-        {user.name} · {user.email} · {user.role === 'admin' ? 'administrador' : 'encargado'}
+        {user.name} · usuario «{user.username}» · {user.role === 'admin' ? 'administrador' : 'encargado'}
       </p>
       {user.role === 'admin' && (
         <div className="actions">

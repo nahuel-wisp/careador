@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 
 interface AppUser {
   id: number;
-  email: string;
+  username: string;
   name: string;
   role: 'admin' | 'manager';
   active: boolean;
@@ -35,6 +35,11 @@ export function UsersPage() {
     setError(null);
     await api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch((e: Error) => setError(e.message));
     load();
+  }
+
+  function rename(u: AppUser) {
+    const next = prompt(`Nuevo usuario para ${u.name} (sin espacios, ej.: ${u.name.split(' ')[0]!.toLowerCase()})`, u.username);
+    if (next && next.trim().toLowerCase() !== u.username) patch(u, { username: next.trim().toLowerCase() });
   }
 
   const visible = users?.filter((u) => u.active !== showInactive) ?? [];
@@ -75,13 +80,16 @@ export function UsersPage() {
               <strong>{u.name}</strong>
               {u.id === me?.id && <span className="muted small"> (vos)</span>}
               <div className="muted small">
-                {u.email} · {ROLE[u.role]}
+                usuario «{u.username}» · {ROLE[u.role]}
               </div>
               {u.mustChangePassword && <div className="tag">Contraseña provisoria</div>}
             </div>
             <div className="actions">
               <button className="secondary small-btn" onClick={() => setResetting(u)}>
                 Nueva contraseña
+              </button>
+              <button className="link small" onClick={() => rename(u)}>
+                Cambiar usuario
               </button>
               {u.id !== me?.id && (
                 <>
@@ -121,7 +129,7 @@ export function UsersPage() {
 }
 
 function UserForm({ onDone }: { onDone(): void }) {
-  const [f, setF] = useState({ name: '', email: '', role: 'manager', password: '' });
+  const [f, setF] = useState({ name: '', username: '', role: 'manager', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
@@ -146,8 +154,18 @@ function UserForm({ onDone }: { onDone(): void }) {
         <input value={f.name} onChange={set('name')} required autoComplete="off" />
       </label>
       <label>
-        Email
-        <input type="email" value={f.email} onChange={set('email')} required autoCapitalize="none" autoComplete="off" />
+        Usuario (para entrar; sin espacios, ej.: pilar)
+        <input
+          value={f.username}
+          onChange={set('username')}
+          required
+          minLength={3}
+          pattern="[A-Za-z0-9._@\-]+"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          autoComplete="off"
+        />
       </label>
       <label>
         Rol

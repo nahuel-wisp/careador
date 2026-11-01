@@ -74,7 +74,7 @@ Hecho:
 - **Usuarios y roles** (`routes/users.ts`, `adminOnly` en `routes/auth.ts`): `admin` todo; `manager` (dueños)
   Personal, Asistencia, Reportes, Novedades y Horarios, sin Equipos ni Usuarios (lo aplica el servidor).
   Contraseña provisoria (`must_change_password`): hasta cambiarla sólo puede usar `/api/auth/*`. Pantallas
-  Mi cuenta (tocar el nombre arriba) y Usuarios (admin). CLI: `--provisoria`, `usuario:desactivar/activar`.
+  Mi cuenta (tocar el nombre arriba) y Usuarios (admin). CLI: `--provisoria`, `usuario:desactivar/activar`. Se entra con **usuario** (no email; la columna `email` guarda el usuario, los viejos siguen entrando con su email).
 - Alta/baja de sucursales y equipos desde la app; prueba de conexión.
 - Docker + despliegue por entornos; instructivo. Pruebas y producción andando en 10.10.70.5 (31/10).
 - **Personal**: alta con foto desde el celular, edición, baja/re-alta, importar personas de un equipo.
@@ -110,7 +110,7 @@ Pendiente, en orden (01/11):
    alta con foto desde la app y prueba que lo reconozca. Valida `upsertPerson`/`setFace` contra el equipo real.
 2. **Dejar de cargar personas en HikCentral** y pasar los dos lectores de producción a lectura/escritura
    (si cargan los dos se pisan). HikCentral queda sólo de consulta hasta apagarlo.
-3. Crear los usuarios de los dueños desde la app (Mi cuenta → Usuarios, rol Encargado, contraseña provisoria).
+3. Crear los usuarios de los dueños desde la app (Mi cuenta → Usuarios: usuario, rol Encargado, contraseña provisoria).
 4. Red: filtrar el port-forward `:1082` a la IP de salida 181.191.64.9 (probar desde otra IP); cerrar o
    filtrar HikCentral publicado en `190.18.165.32:1080` por HTTP; más adelante WireGuard.
 5. Historial anterior a septiembre: exportar de HikCentral «Registros de entradas y salidas» e importarlo

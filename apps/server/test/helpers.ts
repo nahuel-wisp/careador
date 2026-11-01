@@ -18,7 +18,7 @@ export async function testApp(env: Record<string, string> = {}) {
   const seed = openDb(config.dataDir);
   seed
     .insert(appUsers)
-    .values({ email: 'duenio@example.com', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
+    .values({ username: 'duenio', name: 'Dueño', role: 'admin', passwordHash: await hashPassword('una-clave-larga') })
     .run();
   seed.$client.close(); // en Windows, una base abierta impide borrar la carpeta al final
   const app = await buildApp(config);
@@ -27,7 +27,7 @@ export async function testApp(env: Record<string, string> = {}) {
   const res = await app.inject({
     method: 'POST',
     url: '/api/auth/login',
-    payload: { email: 'duenio@example.com', password: 'una-clave-larga' },
+    payload: { username: 'duenio', password: 'una-clave-larga' },
   });
   const cookie = res.cookies.find((c) => c.name === 'careador_sesion')!;
   const headers = { cookie: `careador_sesion=${cookie.value}` };

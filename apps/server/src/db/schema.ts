@@ -128,7 +128,8 @@ export const appUsers = sqliteTable(
   'app_users',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    email: text('email').notNull(),
+    /** Usuario para entrar (la columna se llama «email» por historia; no se mandan correos). */
+    username: text('email').notNull(),
     name: text('name').notNull(),
     passwordHash: text('password_hash').notNull(),
     role: text('role', { enum: ['admin', 'manager'] }).notNull().default('manager'),
@@ -137,7 +138,7 @@ export const appUsers = sqliteTable(
     mustChangePassword: integer('must_change_password', { mode: 'boolean' }).notNull().default(false),
     ...timestamps,
   },
-  (t) => [uniqueIndex('app_users_email_uq').on(t.email)],
+  (t) => [uniqueIndex('app_users_email_uq').on(t.username)],
 );
 
 /** Sesiones de login. Se guarda el hash del token, nunca el token. */
