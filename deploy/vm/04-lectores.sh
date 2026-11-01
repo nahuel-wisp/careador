@@ -94,8 +94,11 @@ done
 
 echo
 echo "== 4/5 Historial de HikCentral (opcional)"
-echo "  Si copiaste a la VM el Excel «Registros de entradas y salidas» (ej. con WinSCP a /home/gestion/),"
-read -rp "  poné la ruta (Enter para saltear): " excel
+HIST=/home/claude/registros-hikcentral.xlsx # Claude deja ahí el que exportaste de HikCentral
+echo "  Excel «Registros de entradas y salidas» de HikCentral. Otro archivo: poné la ruta; \"-\" = saltear."
+read -rp "  Ruta [$HIST]: " excel
+excel=${excel:-$HIST}
+[ "$excel" = "-" ] && excel=""
 if [ -n "$excel" ]; then
   if [ -f "$excel" ]; then
     for dir in "${INSTANCIAS[@]}"; do echo "  $dir"; cli "$dir" historial:importar - <"$excel"; done
