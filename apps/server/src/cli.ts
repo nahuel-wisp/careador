@@ -184,7 +184,9 @@ async function main() {
       const type = res.headers.get('content-type') ?? '';
       console.log(`HTTP ${res.status} ${type}`);
       const buf = Buffer.from(await res.arrayBuffer());
-      console.log(/json|xml|text|html/.test(type) || !type ? buf.toString('utf8').slice(0, 4000) : `[${buf.length} bytes, empieza con ${buf.subarray(0, 4).toString('hex')}]`);
+      // Algunos errores vienen como HTML aunque el encabezado diga imagen.
+      const isText = /json|xml|text|html/.test(type) || !type || buf[0] === 0x3c || buf[0] === 0x7b;
+      console.log(isText ? buf.toString('utf8').slice(0, 4000) : `[${buf.length} bytes, empieza con ${buf.subarray(0, 4).toString('hex')}]`);
       break;
     }
     case 'historial:importar': {
