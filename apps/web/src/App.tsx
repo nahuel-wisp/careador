@@ -6,12 +6,14 @@ import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { LoginPage } from './pages/Login';
 import { PersonalPage } from './pages/Personal';
+import { ReportsPage } from './pages/Reports';
 import { SchedulesPage } from './pages/Schedules';
 import { SimulatorPage } from './pages/Simulator';
 
 const tabs = [
   { to: '/', label: 'Personal', icon: '👤' },
   { to: '/asistencia', label: 'Asistencia', icon: '📋' },
+  { to: '/reportes', label: 'Reportes', icon: '📊' },
   { to: '/novedades', label: 'Novedades', icon: '🗓️' },
   { to: '/horarios', label: 'Horarios', icon: '🕒' },
   { to: '/equipos', label: 'Equipos', icon: '📟' },
@@ -38,6 +40,7 @@ export function App() {
           <Route path="/" element={<PersonalPage />} />
           <Route path="/horarios" element={<SchedulesPage />} />
           <Route path="/novedades" element={<AbsencesPage />} />
+          <Route path="/reportes" element={<ReportsPage />} />
           <Route path="/asistencia" element={<AttendancePage />} />
           <Route path="/equipos" element={<DevicesPage />} />
           <Route path="/simulador/:id" element={<SimulatorPage />} />

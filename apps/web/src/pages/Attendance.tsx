@@ -24,6 +24,7 @@ interface Row {
   lateMin: number;
   earlyMin: number;
   missingOut: boolean;
+  missingIn: boolean;
   workedMin: number;
 }
 
@@ -105,6 +106,7 @@ export function AttendancePage() {
                 {e.lateMin > 0 && <span className="badge bad">Llegó {dur(e.lateMin)} tarde</span>}
                 {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
                 {e.missingOut && <span className="badge warn-bg">Sin salida</span>}
+                {e.missingIn && <span className="badge warn-bg">Sin entrada</span>}
                 {e.absences.map((a) => (
                   <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
                     {KIND_SHORT[a.kind]}
@@ -118,7 +120,7 @@ export function AttendancePage() {
             </div>
             <div className="times-col">
               <div className="times">
-                <span title={e.in?.device}>{hhmm(e.in!.time)}</span>
+                <span title={e.in?.device}>{e.in ? hhmm(e.in.time) : '–'}</span>
                 <span className="muted">→</span>
                 <span title={e.out?.device}>{e.out ? hhmm(e.out.time) : '–'}</span>
               </div>

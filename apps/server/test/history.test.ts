@@ -51,6 +51,30 @@ describe('historial importado de HikCentral', () => {
     expect(day.employees.find((e: { employeeId: number }) => e.employeeId === bruno.id).marks).toBe(2);
   });
 
+  it('reporte del mes: registros como HikCentral, resumen y Excel', async () => {
+    const res = await inject('GET', '/api/reports?from=2026-09-01&to=2026-09-30');
+    expect(res.statusCode).toBe(200);
+    const r = res.json();
+    const ana = r.records.filter((x: { firstName: string }) => x.firstName === 'Gomez');
+    expect(ana).toHaveLength(22);
+    expect(ana.find((x: { date: string }) => x.date === '2026-09-30')).toMatchObject({ in: '07:42', out: '18:01', workedMin: 619, weekday: 'Miércoles' });
+    expect(r.summary.find((s: { name: string }) => s.name === 'ANA, Gomez')).toMatchObject({ workedDays: 22, absentDays: 0 });
+
+    const solo = (await inject('GET', `/api/reports?from=2026-09-29&to=2026-09-30&employeeId=${ana[0].employeeId}`)).json();
+    expect(solo.records.map((x: { date: string }) => x.date)).toEqual(['2026-09-29', '2026-09-30']);
+    expect((await inject('GET', '/api/reports?from=2026-09-30&to=2026-09-01')).statusCode).toBe(400);
+
+    const xlsx = await inject('GET', '/api/reports.xlsx?from=2026-09-01&to=2026-09-30');
+    expect(xlsx.headers['content-disposition']).toContain('asistencia_2026-09-01_2026-09-30.xlsx');
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(xlsx.rawPayload as unknown as ArrayBuffer);
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Registros', 'Resumen']);
+    const reg = wb.getWorksheet('Registros')!;
+    expect(reg.getRow(5).values).toContain('Hora de registro de entrada');
+    expect(reg.rowCount).toBe(5 + r.records.length);
+  });
+
   it('rechaza archivos que no son el Excel de HikCentral', async () => {
     expect((await upload('no soy un excel')).statusCode).toBe(400);
   });

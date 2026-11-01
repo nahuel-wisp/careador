@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateDay, type DayInput } from '../src/lib/schedule';
+import { evaluateDay, splitSingleMark, type DayInput } from '../src/lib/schedule';
 
 const day = new Date(2026, 9, 15); // jueves 15/10/2026, 00:00 local
 const t = (h: number, m = 0) => new Date(2026, 9, 15, h, m);
@@ -21,6 +21,7 @@ describe('evaluateDay', () => {
       lateMin: 0,
       earlyMin: 0,
       missingOut: false,
+      missingIn: false,
       workedMin: 515,
     });
   });
@@ -45,6 +46,13 @@ describe('evaluateDay', () => {
   it('una sola marca: sin salida cuando ya terminó el horario, no antes', () => {
     expect(evaluateDay({ ...base, in: t(9) })).toMatchObject({ missingOut: true, earlyMin: 0 });
     expect(evaluateDay({ ...base, in: t(9), now: t(12) })).toMatchObject({ missingOut: false });
+  });
+
+  it('una sola marca a la tarde es la salida: sin entrada, no 9 horas tarde', () => {
+    const exp = { start: '09:00', end: '18:00' };
+    expect(splitSingleMark({ time: t(17, 59) }, exp, day)).toMatchObject({ in: null, out: { time: t(17, 59) } });
+    expect(splitSingleMark({ time: t(9, 20) }, exp, day)).toMatchObject({ in: { time: t(9, 20) }, out: null });
+    expect(evaluateDay({ ...base, out: t(17, 59) })).toMatchObject({ status: 'presente', lateMin: 0, missingIn: true, missingOut: false });
   });
 
   it('marcó en día libre o con novedad: presente, sin juzgar horario', () => {

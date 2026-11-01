@@ -76,6 +76,11 @@ Hecho:
 - **Historial de HikCentral**: Asistencia → «Subir Excel de HikCentral» importa el informe «Registros de
   entradas y salidas» (`lib/history.ts`). Trae primera/última marca por día, sin legajo: se vincula por nombre
   (sin acentos ni orden) y lo que no coincide queda con `person_name` hasta que el empleado exista.
+- **Reportes** (`lib/report.ts`, pantalla Reportes): hoy, ayer, semana, semana pasada, mes, mes anterior o
+  entre fechas; por sucursal (donde trabajó ese día) y/o persona. Vista Resumen (por empleado) y Día por día
+  (como el Excel de HikCentral, con observaciones). PDF con imprimir del navegador (CSS de impresión) y
+  Excel (`/api/reports.xlsx`: hojas «Registros» con las columnas de HikCentral y «Resumen»).
+  Una sola marca en el día cuenta como salida si está más cerca del horario de salida (`splitSingleMark`).
 
 Pendiente, en orden:
 1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY). Lectores:
@@ -84,8 +89,8 @@ Pendiente, en orden:
    `deploy/vm/04-lectores.sh` (quedan en sólo lectura también en producción hasta comparar con HikCentral).
 2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
 3. Cargar los horarios de Arsa en producción (relevados de HikCentral, `docs/contexto.md`).
-4. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral
-   (`docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`) + hoja "Resumen" por empleado.
+4. Comparar lo que traen los lectores con HikCentral y, si coincide, pasar los lectores de producción a
+   lectura/escritura (hoy `read_only = 1`).
 
 Más adelante: horas extra (¿la hora de más de Arsa 2 vs Arsa 1 es extra?; ver cómo lo liquida Arsa),
 rotativos.
