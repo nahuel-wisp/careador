@@ -29,6 +29,13 @@
       "when": 1793560697362,
       "tag": "0003_horarios_novedades",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793561474924,
+      "tag": "0004_historial_importado",
+      "breakpoints": true
     }
   ]
 }

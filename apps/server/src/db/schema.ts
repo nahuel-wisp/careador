@@ -94,9 +94,10 @@ export const events = sqliteTable(
   'events',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    deviceId: integer('device_id')
-      .notNull()
-      .references(() => devices.id),
+    /** null en las marcaciones importadas de un Excel (historial de HikCentral). */
+    deviceId: integer('device_id').references(() => devices.id),
+    /** 'device' = leída de un equipo; 'import' = importada de un Excel. */
+    source: text('source', { enum: ['device', 'import'] }).notNull().default('device'),
     deviceEventId: text('device_event_id').notNull(),
     time: integer('time', { mode: 'timestamp' }).notNull(),
     kind: text('kind').notNull(),
@@ -104,12 +105,15 @@ export const events = sqliteTable(
     /** Código de persona tal como lo informó el equipo. */
     personCode: text('person_code'),
     employeeId: integer('employee_id').references(() => employees.id),
+    /** Nombre tal como venía en el Excel importado (para vincularlo con el empleado cuando exista). */
+    personName: text('person_name'),
     doorNo: integer('door_no'),
     raw: text('raw', { mode: 'json' }),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   },
   (t) => [
     uniqueIndex('events_device_event_uq').on(t.deviceId, t.deviceEventId),
+    uniqueIndex('events_import_uq').on(t.deviceEventId).where(sql`source = 'import'`),
     index('events_employee_time_idx').on(t.employeeId, t.time),
     index('events_time_idx').on(t.time),
   ],

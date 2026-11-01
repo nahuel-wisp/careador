@@ -201,3 +201,4 @@ label.button { display: inline-flex; align-items: center; justify-content: cente
 .file { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.9rem; }
 .file a { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 label.inline { display: flex !important; align-items: center; gap: 12px; color: var(--fg) !important; }
+.card.history { margin-top: 24px; gap: 8px; }

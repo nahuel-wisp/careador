@@ -73,6 +73,9 @@ Hecho:
   la entrada** (el personal rota). Novedades (`absences`: vacaciones, franco, licencia, enfermedad, feriado
   para todos, permisos de llegada/salida) con comprobantes adjuntos (`absence_files`, foto o PDF).
   Cálculo en `lib/schedule.ts` (`evaluateDay`): presente/tarde/salida anticipada/sin salida/ausente/novedad/libre.
+- **Historial de HikCentral**: Asistencia → «Subir Excel de HikCentral» importa el informe «Registros de
+  entradas y salidas» (`lib/history.ts`). Trae primera/última marca por día, sin legajo: se vincula por nombre
+  (sin acentos ni orden) y lo que no coincide queda con `person_name` hasta que el empleado exista.
 
 Pendiente, en orden:
 1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY) y la ruta a
@@ -83,7 +86,7 @@ Pendiente, en orden:
    (`docs/ejemplos/registros_entradas_salidas_anonimizado.xlsx`) + hoja "Resumen" por empleado.
 
 Más adelante: horas extra (¿la hora de más de Arsa 2 vs Arsa 1 es extra?; ver cómo lo liquida Arsa),
-rotativos, historial anterior a lo que guardan los lectores (exportar de HikCentral e importar).
+rotativos.
 
 Preguntas abiertas al cliente:
 - Horarios: relevados de HikCentral (`docs/contexto.md`, «Horarios actuales en HikCentral»): tolerancia 15 min,

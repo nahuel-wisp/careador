@@ -5,6 +5,7 @@ import type { AppContext } from '../app';
 import { devices, employeeFaces, employees, enrollments, sites } from '../db/schema';
 import { driverFor } from '../lib/devices';
 import { markPending } from '../lib/enrollment';
+import { linkImported } from '../lib/history';
 
 const employeeInput = z.object({
   /** Legajo: es el ID de la persona en los equipos. Si no viene, se asigna el siguiente número. */
@@ -70,6 +71,7 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
     }
     const [row] = db.insert(employees).values({ ...input, code: finalCode }).returning().all();
     sync.kick();
+    linkImported(ctx); // historial de HikCentral que esperaba a este empleado
     return reply.code(201).send(list(row!.id)[0]);
   });
 
@@ -93,6 +95,7 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
       markPending(ctx, id);
     }
     sync.kick();
+    linkImported(ctx); // historial de HikCentral que esperaba a este empleado
     return list(id)[0];
   });
 
@@ -180,6 +183,7 @@ export async function employeeRoutes(app: FastifyInstance, ctx: AppContext) {
       }
     }
     sync.kick();
+    linkImported(ctx); // historial de HikCentral que esperaba a este empleado
     return { created, existing, faces, facesFailed };
   });
 }

@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { AppContext } from '../app';
 import { devices, employees, events } from '../db/schema';
 import { driverFor } from './devices';
+import { linkImported } from './history';
 
 /** La primera vez se traen los últimos 35 días (lo que suele guardar el equipo y cubre el mes anterior). */
 const FIRST_SYNC_DAYS = 35;
@@ -82,6 +83,8 @@ export class EventSync {
     db.run(sql`
       UPDATE events SET employee_id = (SELECT id FROM employees WHERE code = events.person_code)
       WHERE employee_id IS NULL AND person_code IS NOT NULL`);
+    // Y el historial importado de HikCentral (que viene sin legajo) se vincula por nombre.
+    linkImported(this.ctx);
     return summary;
   }
 }

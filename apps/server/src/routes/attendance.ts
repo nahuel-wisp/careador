@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../app';
 import { devices, employees, events } from '../db/schema';
+import { importRecords, linkImported, parseHikcentralRecords } from '../lib/history';
 import { evaluateDay } from '../lib/schedule';
 import { absencesOn, schedulesOn } from './schedules';
 
@@ -21,6 +22,12 @@ export async function attendanceRoutes(app: FastifyInstance, ctx: AppContext) {
   /** Trae ya las marcaciones de los equipos (y espera). */
   app.post('/api/events/sync', async () => eventSync.run());
 
+  /** Importa el Excel «Registros de entradas y salidas» de HikCentral (body: el .xlsx crudo). */
+  app.post('/api/history/hikcentral', async (req, reply) => {
+    if (!Buffer.isBuffer(req.body)) return reply.code(400).send({ error: 'Mandá el archivo .xlsx' });
+    return importRecords(ctx, await parseHikcentralRecords(req.body));
+  });
+
   /**
    * Asistencia de un día: por empleado activo, entrada = primera marcación y salida = última
    * (mismo criterio que el reporte de HikCentral). Incluye a los que no marcaron, y contra el horario y
@@ -38,8 +45,9 @@ export async function attendanceRoutes(app: FastifyInstance, ctx: AppContext) {
       .orderBy(asc(events.time))
       .all();
     const deviceRows = db.select({ id: devices.id, name: devices.name, siteId: devices.siteId }).from(devices).all();
-    const deviceNames = new Map(deviceRows.map((d) => [d.id, d.name]));
-    const deviceSite = new Map(deviceRows.map((d) => [d.id, d.siteId]));
+    const deviceNames = new Map<number | null, string>(deviceRows.map((d) => [d.id, d.name]));
+    deviceNames.set(null, 'HikCentral (historial)');
+    const deviceSite = new Map<number | null, number>(deviceRows.map((d) => [d.id, d.siteId]));
 
     const people = db.select().from(employees).where(eq(employees.active, true)).orderBy(employees.lastName).all();
     const result = people.map((e) => {

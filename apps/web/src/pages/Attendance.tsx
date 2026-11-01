@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../api';
-import { KIND_SHORT, type AbsenceKind, type DaySchedule } from '../lib/schedules';
+import { KIND_SHORT, shortDate, type AbsenceKind, type DaySchedule } from '../lib/schedules';
 
 interface Mark {
   time: string;
@@ -196,6 +196,8 @@ export function AttendancePage() {
         </p>
       )}
 
+      <HistoryImport onDone={() => load()} />
+
       {data && data.unknownCodes.length > 0 && (
         <p className="warn small">
           Hay marcaciones de legajos que no están en Personal: {data.unknownCodes.join(', ')}. Usá «Importar personas» en
@@ -203,5 +205,68 @@ export function AttendancePage() {
         </p>
       )}
     </section>
+  );
+}
+
+interface ImportResult {
+  days: number;
+  inserted: number;
+  from: string;
+  to: string;
+  unmatched: { name: string; days: number }[];
+}
+
+/** Sube el Excel «Registros de entradas y salidas» de HikCentral para traer el historial. */
+function HistoryImport({ onDone }: { onDone(): void }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const r = await api<ImportResult>('/history/hikcentral', {
+        method: 'POST',
+        body: file,
+        headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+      });
+      setResult(r);
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar');
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="card col history">
+      <strong>Historial de HikCentral</strong>
+      <p className="muted small">
+        El Excel «Registros de entradas y salidas» que exporta HikCentral (el mismo informe de siempre), del período
+        que quieras. Subirlo de nuevo o con meses que se pisan no duplica nada.
+      </p>
+      <label className="button secondary">
+        {busy ? 'Importando…' : 'Subir Excel de HikCentral'}
+        <input type="file" accept=".xlsx" hidden disabled={busy} onChange={(e) => upload(e.target.files?.[0])} />
+      </label>
+      {error && <p className="error small">{error}</p>}
+      {result && (
+        <p className="small">
+          <span className="ok">
+            ✓ {result.days} días del {shortDate(result.from)} al {shortDate(result.to)}: {result.inserted} marcas nuevas.
+          </span>
+          {result.unmatched.length > 0 && (
+            <span className="muted">
+              {' '}
+              Todavía no están en Personal: {result.unmatched.map((u) => u.name).join(', ')}. Sus marcas quedan
+              guardadas y se les asignan solas cuando los cargues (o los importes de un equipo).
+            </span>
+          )}
+        </p>
+      )}
+    </div>
   );
 }

@@ -68,9 +68,16 @@ export async function buildApp(config: Config) {
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, { global: false });
   await authRoutes(app, ctx);
-  // Archivos crudos: fotos faciales (JPEG) y comprobantes de novedades (fotos o PDF).
+  // Archivos crudos: fotos faciales (JPEG), comprobantes de novedades (fotos o PDF) y Excel de HikCentral.
   app.addContentTypeParser(
-    ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'],
+    [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ],
     { parseAs: 'buffer' },
     (_req, body, done) => done(null, body),
   );
