@@ -209,7 +209,7 @@ function EmployeeForm({
     firstName: employee?.firstName ?? '',
     lastName: employee?.lastName ?? '',
     documentNumber: employee?.documentNumber ?? '',
-    siteId: String(employee?.siteId ?? sites[0]?.id ?? ''),
+    siteId: employee ? String(employee.siteId ?? '') : String(sites[0]?.id ?? ''),
     code: '',
     scheduleId: String(ownSchedule ?? ''),
   });
@@ -326,6 +326,7 @@ function EmployeeForm({
           <label>
             Sucursal
             <select value={f.siteId} onChange={set('siteId')}>
+              <option value="">Sin sucursal (dueños: no se controla horario)</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}

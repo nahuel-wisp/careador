@@ -10,7 +10,9 @@
  *   node dist/cli.js equipo:importar [id]        trae personas y fotos (de todos los equipos si no hay id)
  *   node dist/cli.js marcaciones:leer            trae las marcaciones nuevas de todos los equipos
  *   node dist/cli.js historial:importar -        importa el Excel de HikCentral leído de la entrada
+ *   node dist/cli.js equipo:isapi <id> <GET|POST|PUT> <ruta> [json]   pedido ISAPI crudo (diagnóstico)
  */
+import { IsapiClient } from '@careador/devices';
 import { eq } from 'drizzle-orm';
 import type { AppContext } from './app';
 import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';
@@ -165,6 +167,24 @@ async function main() {
     case 'marcaciones:leer': {
       const r = await ctx.events.run();
       console.log(`  Marcaciones: ${r.inserted} nuevas de ${r.devices} equipos${r.errors ? ` · ${r.errors} con error (ver equipo:listar)` : ''}`);
+      break;
+    }
+    case 'equipo:isapi': {
+      // Diagnóstico contra un equipo real: muestra la respuesta tal cual (nunca la contraseña).
+      const [id, method = 'GET', path, json] = args;
+      const d = db.select().from(devices).where(eq(devices.id, Number(id))).get();
+      if (!d || !path || !['GET', 'POST', 'PUT'].includes(method)) {
+        throw new Error('Uso: equipo:isapi <id> <GET|POST|PUT> <ruta> [json]');
+      }
+      if (method !== 'GET' && !path.includes('Search') && !path.includes('AcsEvent')) {
+        throw new Error('Por seguridad sólo se permiten GET y búsquedas (rutas con Search o AcsEvent)');
+      }
+      const client = new IsapiClient({ host: d.host, username: d.username, password: ctx.secrets.decrypt(d.passwordEnc), https: d.https });
+      const res = await client.request({ method: method as 'GET', path, json: json ? JSON.parse(json) : undefined });
+      const type = res.headers.get('content-type') ?? '';
+      console.log(`HTTP ${res.status} ${type}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      console.log(/json|xml|text|html/.test(type) || !type ? buf.toString('utf8').slice(0, 4000) : `[${buf.length} bytes, empieza con ${buf.subarray(0, 4).toString('hex')}]`);
       break;
     }
     case 'historial:importar': {

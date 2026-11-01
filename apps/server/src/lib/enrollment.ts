@@ -1,7 +1,7 @@
 import { DeviceError } from '@careador/devices';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AppContext } from '../app';
-import { devices, employeeFaces, employees, enrollments } from '../db/schema';
+import { devices, employeeFaces, employees, enrollments, sites } from '../db/schema';
 import { driverFor } from './devices';
 import { historyNames, linkImported, nameKey } from './history';
 
@@ -148,6 +148,7 @@ export async function importPersons(ctx: AppContext, deviceId: number, warn: (ms
 
   const driver = driverFor(ctx, device);
   const fromHistory = historyNames(ctx);
+  const siteByName = new Map(db.select().from(sites).all().map((s) => [s.name.toLowerCase(), s.id]));
   let created = 0;
   let existing = 0;
   let faces = 0;
@@ -157,12 +158,18 @@ export async function importPersons(ctx: AppContext, deviceId: number, warn: (ms
     if (emp) {
       existing++;
     } else {
-      // La app carga "Apellido Nombre"; si la persona está en el historial de HikCentral, se usa cómo lo separaba él.
-      const [last, ...first] = p.name.trim().split(/\s+/);
-      const names = fromHistory.get(nameKey(p.name)) ?? { lastName: last || p.id, firstName: first.join(' ') || '-' };
+      // HikCentral carga "Nombre Apellido". Si la persona está en su historial, se usa cómo separaba nombre y
+      // apellido y su departamento como sucursal; si no, primera palabra = nombre (se corrige en Personal).
+      const hist = fromHistory.get(nameKey(p.name));
+      const [first, ...last] = p.name.trim().split(/\s+/);
       [emp] = db
         .insert(employees)
-        .values({ code: p.id, ...names, siteId: device.siteId })
+        .values({
+          code: p.id,
+          firstName: hist?.firstName ?? first ?? p.id,
+          lastName: hist?.lastName ?? (last.join(' ') || '-'),
+          siteId: (hist && siteByName.get(hist.department.toLowerCase())) ?? device.siteId,
+        })
         .returning()
         .all();
       created++;

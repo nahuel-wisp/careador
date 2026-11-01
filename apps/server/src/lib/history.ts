@@ -168,10 +168,14 @@ export function linkImported(ctx: AppContext) {
  * Los equipos guardan el nombre en un solo campo y no hay forma segura de partirlo ("Juan Di Fonzo").
  */
 export function historyNames(ctx: AppContext) {
-  const map = new Map<string, { firstName: string; lastName: string }>();
+  const map = new Map<string, { firstName: string; lastName: string; department: string }>();
   for (const r of ctx.db.select({ raw: events.raw }).from(events).where(eq(events.source, 'import')).all()) {
     const row = r.raw as Partial<RecordRow> | null;
-    if (row?.name && row.firstName && row.lastName) map.set(nameKey(row.name), { firstName: row.firstName, lastName: row.lastName });
+    if (row?.name && row.firstName && row.lastName) {
+      // "All Departments>Arsa 2" → "Arsa 2"
+      const department = (row.department ?? '').split('>').pop()!.trim();
+      map.set(nameKey(row.name), { firstName: row.firstName, lastName: row.lastName, department });
+    }
   }
   return map;
 }

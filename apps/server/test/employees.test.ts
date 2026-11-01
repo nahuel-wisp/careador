@@ -75,7 +75,7 @@ describe('personal y sincronización a los equipos', () => {
   });
 
   it('importa las personas que ya estaban en un equipo', async () => {
-    await inject('POST', `/api/simulador/${simB}/personas`, { id: '500', name: 'Pérez Juan Carlos' });
+    await inject('POST', `/api/simulador/${simB}/personas`, { id: '500', name: 'Juan Pérez' });
     await t.app.inject({
       method: 'PUT',
       url: `/api/simulador/${simB}/cara/500`,
@@ -86,7 +86,7 @@ describe('personal y sincronización a los equipos', () => {
     expect(res).toEqual({ created: 1, existing: 1, faces: 1, facesFailed: 0 });
     await sync();
     const juan = (await inject('GET', '/api/employees')).json().find((e: { code: string }) => e.code === '500');
-    expect(juan).toMatchObject({ lastName: 'Pérez', firstName: 'Juan Carlos', siteId, hasFace: true });
+    expect(juan).toMatchObject({ lastName: 'Pérez', firstName: 'Juan', siteId, hasFace: true }); // HikCentral: "Nombre Apellido"
     // Y se lo lleva al otro equipo, con la foto.
     expect((await sim(simA)).persons.find((p: { id: string }) => p.id === '500')).toMatchObject({ hasFace: true });
   });

@@ -6,6 +6,7 @@ import type { DeviceConnection } from './types';
 export * from './types';
 export * from './driver';
 export { HikvisionDriver } from './hikvision/driver';
+export { IsapiClient } from './hikvision/isapi-client';
 export { SimulatedDriver } from './simulator/driver';
 export { readOnly } from './readonly';
 
