@@ -17,6 +17,7 @@ interface Device {
   id: number;
   name: string;
   siteId: number;
+  enabled: boolean;
 }
 
 /** Sucursales (con sus lectores y su horario) y los horarios que se les pueden aplicar. */
@@ -89,7 +90,7 @@ export function SitesPage() {
                 <td>{scheduleName(s.scheduleId) || <span className="muted">Sin horario</span>}</td>
                 <td>
                   {devices
-                    .filter((d) => d.siteId === s.id)
+                    .filter((d) => d.siteId === s.id && d.enabled)
                     .map((d) => d.name)
                     .join(', ') || <span className="muted">Ninguno</span>}
                 </td>
@@ -216,20 +217,26 @@ function SiteForm({
     }
   }
 
-  /** Cada lector está en una sola sucursal: asignarlo acá lo saca de la otra. */
-  async function moveDevice(deviceId: number, siteId: number) {
+  const siteName = (id: number) => sites.find((s) => s.id === id)?.name ?? '';
+  const usedHere = (d: Device) => !!site && d.siteId === site.id && d.enabled;
+
+  /**
+   * Tildar: el lector se usa en esta sucursal (si estaba en otra, se pasa). Destildar: deja de usarse
+   * (queda desactivado; cada lector está en una sola sucursal).
+   */
+  async function toggleDevice(d: Device, use: boolean) {
+    if (!site) return;
+    if (use && d.enabled && d.siteId !== site.id && !confirm(`«${d.name}» hoy se usa en ${siteName(d.siteId)}. ¿Pasarlo a ${site.name}?`)) return;
+    if (!use && !confirm(`¿Dejar de usar «${d.name}»? No va a leer marcaciones ni cargar personas hasta que lo vuelvas a tildar.`)) return;
     setError(null);
+    const body = use ? { siteId: site.id, enabled: true } : { enabled: false };
     try {
-      await api(`/devices/${deviceId}`, { method: 'PATCH', body: JSON.stringify({ siteId }) });
-      setList(list.map((d) => (d.id === deviceId ? { ...d, siteId } : d)));
+      await api(`/devices/${d.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      setList(list.map((x) => (x.id === d.id ? { ...x, ...body } : x)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo mover el lector');
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el lector');
     }
   }
-
-  const mine = site ? list.filter((d) => d.siteId === site.id) : [];
-  const others = site ? list.filter((d) => d.siteId !== site.id) : [];
-  const siteName = (id: number) => sites.find((s) => s.id === id)?.name ?? '';
 
   return (
     <section>
@@ -268,24 +275,18 @@ function SiteForm({
         {site && (
           <div>
             <strong>Lectores</strong>
-            {mine.length === 0 && <p className="muted small">Esta sucursal no tiene lectores.</p>}
-            <ul className="list compact" style={{ margin: '6px 0' }}>
-              {mine.map((d) => (
-                <li key={d.id} className="small">
+            {list.length === 0 && <p className="muted small">Todavía no hay lectores cargados.</p>}
+            <div className="list compact" style={{ margin: '6px 0' }}>
+              {list.map((d) => (
+                <label key={d.id} className="check">
+                  <input type="checkbox" checked={usedHere(d)} disabled={!isAdmin} onChange={(e) => toggleDevice(d, e.target.checked)} />
                   📟 {d.name}
-                </li>
+                  <span className="muted small">
+                    {usedHere(d) ? '' : !d.enabled ? 'sin usar' : `se usa en ${siteName(d.siteId)}`}
+                  </span>
+                </label>
               ))}
-            </ul>
-            {isAdmin && others.length > 0 && (
-              <select value="" onChange={(e) => e.target.value && moveDevice(Number(e.target.value), site.id)} aria-label="Asignar lector">
-                <option value="">Asignar un lector de otra sucursal…</option>
-                {others.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}, hoy en {siteName(d.siteId)}
-                  </option>
-                ))}
-              </select>
-            )}
+            </div>
           </div>
         )}
 
