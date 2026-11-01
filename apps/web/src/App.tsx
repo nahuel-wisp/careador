@@ -18,12 +18,12 @@ import { UsersPage } from './pages/Users';
 import { useVista } from './ui';
 
 const tabs = [
-  { to: '/personal', label: 'Personal' },
-  { to: '/asistencia', label: 'Asistencia' },
-  { to: '/reportes', label: 'Reportes' },
-  { to: '/novedades', label: 'Novedades' },
-  { to: '/sucursales', label: 'Sucursales y horarios' },
-  { to: '/admin', label: 'Admin', admin: true },
+  { to: '/personal', label: 'Personal', icon: '👤' },
+  { to: '/asistencia', label: 'Asistencia', icon: '📋' },
+  { to: '/reportes', label: 'Reportes', icon: '📊' },
+  { to: '/novedades', label: 'Novedades', icon: '🗓️' },
+  { to: '/sucursales', label: 'Sucursales y horarios', icon: '🕒' },
+  { to: '/admin', label: 'Admin', icon: '⚙️', admin: true },
 ];
 
 /** Páginas que se abren desde Admin: la pestaña queda marcada. */
@@ -54,7 +54,10 @@ export function App() {
                   to={t.to}
                   className={({ isActive }) => (isActive || (t.admin && ADMIN_PATHS.some((p) => pathname.startsWith(p))) ? 'active' : '')}
                 >
-                  {t.label}
+                  <span className="ico" aria-hidden>
+                    {t.icon}
+                  </span>
+                  <span>{t.label}</span>
                 </NavLink>
               ))}
           </nav>

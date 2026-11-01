@@ -63,7 +63,7 @@ h2 { font-size: 1.05rem; margin: 20px 0 8px; }
   align-items: center;
   gap: 18px;
   padding: 0 24px;
-  height: 48px;
+  height: 60px;
   background: var(--nav);
   color: var(--nav-fg);
 }
@@ -72,14 +72,19 @@ h2 { font-size: 1.05rem; margin: 20px 0 8px; }
 .navtabs { display: flex; gap: 2px; height: 100%; flex: 1; overflow-x: auto; }
 .navtabs a {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 0 12px;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 14px;
+  font-size: 0.8rem;
   color: var(--nav-fg);
   text-decoration: none;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
 }
 .navtabs a:hover { color: #fff; }
+.navtabs .ico { font-size: 1.35rem; line-height: 1; }
 .navtabs a.active { color: #fff; border-bottom-color: var(--accent); }
 .topnav .user { display: flex; gap: 14px; align-items: center; white-space: nowrap; }
 .topnav .user a { color: var(--nav-fg); text-decoration: none; }
