@@ -41,7 +41,7 @@ describe('personal y sincronización a los equipos', () => {
 
     expect(await sync()).toMatchObject({ errors: 0 });
     for (const id of [simA, simB]) {
-      expect((await sim(id)).persons).toEqual([expect.objectContaining({ id: '1', name: 'Gómez Ana', hasFace: true })]);
+      expect((await sim(id)).persons).toEqual([expect.objectContaining({ id: '1', name: 'Ana Gómez', hasFace: true })]);
     }
     const [emp] = (await inject('GET', '/api/employees')).json();
     expect(emp.devices).toHaveLength(2);
@@ -89,6 +89,27 @@ describe('personal y sincronización a los equipos', () => {
     expect(juan).toMatchObject({ lastName: 'Pérez', firstName: 'Juan', siteId, hasFace: true }); // HikCentral: "Nombre Apellido"
     // Y se lo lleva al otro equipo, con la foto.
     expect((await sim(simA)).persons.find((p: { id: string }) => p.id === '500')).toMatchObject({ hasFace: true });
+  });
+
+  it('editar un equipo: sólo lectura, contraseña y no se puede quitar si tiene marcaciones', async () => {
+    const patch = (body: object) => t.app.inject({ method: 'PATCH', url: `/api/devices/${simA}`, headers: t.headers, payload: body });
+    expect((await patch({ readOnly: true })).json()).toMatchObject({ readOnly: true, effectiveReadOnly: true });
+    // Un alta mientras está en sólo lectura queda con error en ese equipo...
+    const beto = (await inject('POST', '/api/employees', { firstName: 'Beto', lastName: 'Ruiz', siteId })).json();
+    await sync();
+    let emp = (await inject('GET', '/api/employees')).json().find((e: { id: number }) => e.id === beto.id);
+    expect(emp.devices.find((d: { deviceId: number }) => d.deviceId === simA)).toMatchObject({ status: 'error' });
+    // ...y al habilitar la escritura se manda.
+    const res = await patch({ readOnly: false, name: 'A editado', password: '' });
+    expect(res.json()).toMatchObject({ readOnly: false, name: 'A editado' });
+    expect(res.json().passwordEnc).toBeUndefined();
+    await sync();
+    emp = (await inject('GET', '/api/employees')).json().find((e: { id: number }) => e.id === beto.id);
+    expect(emp.devices.find((d: { deviceId: number }) => d.deviceId === simA)).toMatchObject({ status: 'synced' });
+    const hist = (await inject('GET', '/api/audit')).json().map((h: { summary: string }) => h.summary);
+    expect(hist).toContain('Habilitó la escritura en un equipo');
+    expect(hist).toContain('Pasó un equipo a sólo lectura');
+    expect(JSON.stringify((await inject('GET', '/api/audit')).json())).not.toMatch(/"password":"x"/);
   });
 
   it('un equipo caído deja el error guardado para reintentar', async () => {

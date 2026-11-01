@@ -17,9 +17,9 @@ export interface SyncSummary {
   errors: number;
 }
 
-/** Nombre que se carga en el equipo (Hikvision admite hasta 32 caracteres). */
+/** Nombre que se carga en el equipo, como lo hace HikCentral: "Nombre Apellido" (Hikvision admite hasta 32). */
 export function deviceName(e: { firstName: string; lastName: string }) {
-  return `${e.lastName} ${e.firstName}`.trim().slice(0, 32);
+  return `${e.firstName} ${e.lastName}`.trim().slice(0, 32);
 }
 
 /**

@@ -71,6 +71,14 @@ const LABELS: Record<string, (b: Body) => string> = {
   'POST /api/sites': (b) => `Creó la sucursal «${b.name}»`,
   'POST /api/devices': (b) => `Agregó el equipo «${b.name}» (${b.host})`,
   'DELETE /api/devices/:id': () => 'Borró un equipo',
+  'PATCH /api/devices/:id': (b) =>
+    b.readOnly === false
+      ? 'Habilitó la escritura en un equipo'
+      : b.readOnly === true
+        ? 'Pasó un equipo a sólo lectura'
+        : b.enabled === false
+          ? 'Desactivó un equipo'
+          : `Editó un equipo${b.password ? ' (cambió la contraseña)' : ''}`,
   'POST /api/history/hikcentral': () => 'Importó el historial de HikCentral',
 };
 

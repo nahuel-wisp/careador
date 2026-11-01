@@ -9,6 +9,9 @@ interface Device {
   name: string;
   brand: string;
   host: string;
+  username: string;
+  readOnly: boolean;
+  enabled: boolean;
   model: string | null;
   firmware: string | null;
   lastSeenAt: string | null;
@@ -27,6 +30,7 @@ export function DevicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
 
   const load = () =>
     Promise.all([api<Device[]>('/devices'), api<Site[]>('/sites')])
@@ -99,7 +103,19 @@ export function DevicesPage() {
       )}
       {devices?.length === 0 && !adding && <p className="muted">No hay equipos cargados.</p>}
       <ul className="list">
-        {devices?.map((d) => (
+        {devices?.map((d) =>
+          editing === d.id ? (
+            <li key={d.id}>
+              <EditDeviceForm
+                device={d}
+                sites={sites}
+                onDone={() => {
+                  setEditing(null);
+                  load();
+                }}
+              />
+            </li>
+          ) : (
           <li key={d.id} className="card col">
             <div>
               <strong>{d.name}</strong>
@@ -108,6 +124,7 @@ export function DevicesPage() {
                 {d.model ? ` · ${d.model}` : ''}
               </div>
               {d.effectiveReadOnly && <div className="tag">Sólo lectura</div>}
+              {!d.enabled && <div className="tag">Desactivado</div>}
               {d.lastError ? (
                 <div className="error">{d.lastError}</div>
               ) : d.lastSeenAt ? (
@@ -126,12 +143,16 @@ export function DevicesPage() {
                   Abrir simulador
                 </Link>
               )}
+              <button className="secondary" onClick={() => setEditing(d.id)}>
+                Editar
+              </button>
               <button className="link danger" onClick={() => remove(d)}>
                 Quitar
               </button>
             </div>
           </li>
-        ))}
+          ),
+        )}
       </ul>
     </section>
   );
@@ -250,6 +271,97 @@ function DeviceForm({ sites, onCancel, onSaved }: { sites: Site[]; onCancel(): v
           {busy ? 'Guardando…' : 'Guardar'}
         </button>
         <button type="button" className="link" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** Editar un equipo: datos de conexión, sólo lectura y activo. La contraseña sólo se cambia si se escribe. */
+function EditDeviceForm({ device, sites, onDone }: { device: Device; sites: Site[]; onDone(): void }) {
+  const entorno = useEntorno();
+  const [f, setF] = useState({
+    siteId: String(device.siteId),
+    name: device.name,
+    host: device.host,
+    username: device.username,
+    password: '',
+    readOnly: device.readOnly,
+    enabled: device.enabled,
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const isSim = device.brand === 'simulador';
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (device.readOnly && !f.readOnly && !confirm(`¿Habilitar la escritura en "${device.name}"? La app va a poder cargar, cambiar y dar de baja personas en el equipo.`)) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/devices/${device.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ...f, siteId: Number(f.siteId), password: f.password || undefined }),
+      });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="form card col wide" onSubmit={submit}>
+      <label>
+        Sucursal
+        <select value={f.siteId} onChange={(e) => setF({ ...f, siteId: e.target.value })}>
+          {sites.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Nombre del equipo
+        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
+      </label>
+      {!isSim && (
+        <>
+          <label>
+            IP o host (con puerto si no es 80)
+            <input value={f.host} onChange={(e) => setF({ ...f, host: e.target.value })} autoCapitalize="none" required />
+          </label>
+          <label>
+            Usuario
+            <input value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} autoCapitalize="none" required />
+          </label>
+          <label>
+            Contraseña (dejala vacía para no cambiarla)
+            <input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="off" />
+          </label>
+        </>
+      )}
+      <label className="check">
+        <input type="checkbox" checked={f.readOnly} onChange={(e) => setF({ ...f, readOnly: e.target.checked })} />
+        Sólo lectura (no enviar cambios a este equipo)
+      </label>
+      {entorno?.equiposSoloLectura && !isSim && (
+        <p className="warn small">En este entorno los equipos reales siempre quedan en sólo lectura.</p>
+      )}
+      <label className="check">
+        <input type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
+        Activo (si no, la app no lo usa: ni lee marcaciones ni carga personas)
+      </label>
+      {error && <p className="error">{error}</p>}
+      <div className="actions">
+        <button type="submit" disabled={busy}>
+          {busy ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button type="button" className="link" onClick={onDone}>
           Cancelar
         </button>
       </div>

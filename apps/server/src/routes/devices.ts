@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../app';
-import { devices, sites } from '../db/schema';
+import { devices, events, sites } from '../db/schema';
 import { driverFor, isReadOnly } from '../lib/devices';
 
 const deviceInput = z.object({
@@ -75,7 +75,44 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext) {
     return reply.code(201).send(publicDevice(row!));
   });
 
+  /**
+   * Edita un equipo: datos de conexión (la contraseña sólo si viene), sólo lectura y habilitado.
+   * Al habilitar la escritura, se manda lo pendiente.
+   */
+  app.patch<{ Params: { id: string } }>('/api/devices/:id', async (req, reply) => {
+    const id = Number(req.params.id);
+    const before = db.select().from(devices).where(eq(devices.id, id)).get();
+    if (!before) return reply.code(404).send({ error: 'Equipo inexistente' });
+    const input = deviceInput
+      .pick({ siteId: true, name: true, host: true, username: true, readOnly: true, https: true })
+      .extend({ password: z.string().optional(), enabled: z.boolean().optional() })
+      .partial()
+      .parse(req.body);
+    const { password, ...rest } = input;
+    if (rest.siteId && !db.select().from(sites).where(eq(sites.id, rest.siteId)).get()) {
+      return reply.code(400).send({ error: 'Sucursal inexistente' });
+    }
+    req.auditBefore = publicDevice(before);
+    const connChanged = password || (rest.host && rest.host !== before.host) || (rest.username && rest.username !== before.username);
+    const [row] = db
+      .update(devices)
+      .set({
+        ...rest,
+        ...(password ? { passwordEnc: secrets.encrypt(password) } : {}),
+        ...(connChanged ? { lastError: null } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(devices.id, id))
+      .returning()
+      .all();
+    ctx.sync.kick();
+    return publicDevice(row!);
+  });
+
   app.delete<{ Params: { id: string } }>('/api/devices/:id', async (req, reply) => {
+    if (db.select({ id: events.id }).from(events).where(eq(events.deviceId, Number(req.params.id))).limit(1).get()) {
+      return reply.code(409).send({ error: 'El equipo ya tiene marcaciones: en lugar de quitarlo, editalo y desactivalo' });
+    }
     const before = db.select().from(devices).where(eq(devices.id, Number(req.params.id))).get();
     req.auditBefore = before && publicDevice(before);
     const res = db.delete(devices).where(eq(devices.id, Number(req.params.id))).run();

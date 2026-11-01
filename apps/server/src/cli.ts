@@ -11,6 +11,8 @@
  *   node dist/cli.js marcaciones:leer            trae las marcaciones nuevas de todos los equipos
  *   node dist/cli.js historial:importar -        importa el Excel de HikCentral leído de la entrada
  *   node dist/cli.js equipo:isapi <id> <GET|POST|PUT> <ruta> [json]   pedido ISAPI crudo (diagnóstico)
+ *   node dist/cli.js personal:foto <legajo> [--enviar] < foto.jpg   guarda la foto (JPEG) en la app;
+ *       con --enviar también se manda a los equipos (sin, es para fotos que los equipos ya tienen)
  */
 import { IsapiClient } from '@careador/devices';
 import { eq } from 'drizzle-orm';
@@ -21,10 +23,11 @@ import { stdin, stdout } from 'node:process';
 import { createInterface } from 'node:readline/promises';
 import { loadConfig } from './config';
 import { openDb } from './db';
-import { appUsers, devices, sessions, sites } from './db/schema';
+import { appUsers, devices, employeeFaces, employees, sessions, sites } from './db/schema';
 import { SecretBox } from './lib/crypto';
 import { driverFor } from './lib/devices';
-import { EnrollmentSync, importPersons } from './lib/enrollment';
+import { audit } from './lib/audit';
+import { EnrollmentSync, importPersons, markPending, MAX_FACE_BYTES } from './lib/enrollment';
 import { EventSync } from './lib/events';
 import { importRecords, parseHikcentralRecords } from './lib/history';
 import { hashPassword } from './lib/password';
@@ -187,6 +190,23 @@ async function main() {
       // Algunos errores vienen como HTML aunque el encabezado diga imagen.
       const isText = /json|xml|text|html/.test(type) || !type || buf[0] === 0x3c || buf[0] === 0x7b;
       console.log(isText ? buf.toString('utf8').slice(0, 4000) : `[${buf.length} bytes, empieza con ${buf.subarray(0, 4).toString('hex')}]`);
+      break;
+    }
+    case 'personal:foto': {
+      const [code] = args;
+      const emp = code && db.select().from(employees).where(eq(employees.code, code)).get();
+      if (!emp) throw new Error(code ? `No hay empleado con legajo ${code}` : 'Uso: personal:foto <legajo> < foto.jpg');
+      const jpeg = await readStdin();
+      if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8) throw new Error('La foto tiene que ser JPEG');
+      if (jpeg.length > MAX_FACE_BYTES) throw new Error('Foto demasiado grande (máx. 1 MB)');
+      db.insert(employeeFaces)
+        .values({ employeeId: emp.id, jpeg })
+        .onConflictDoUpdate({ target: employeeFaces.employeeId, set: { jpeg, updatedAt: new Date() } })
+        .run();
+      // Las fotos de HikCentral ya las tienen los equipos: sólo se mandan si se pide.
+      if (args.includes('--enviar')) markPending(ctx, emp.id, { face: true });
+      audit(ctx, null, { action: 'personal.foto', summary: `Cargó la foto (${Math.round(jpeg.length / 1024)} KB) por consola`, employeeId: emp.id });
+      console.log(`  ${emp.lastName}, ${emp.firstName}: foto cargada (${Math.round(jpeg.length / 1024)} KB)`);
       break;
     }
     case 'historial:importar': {
