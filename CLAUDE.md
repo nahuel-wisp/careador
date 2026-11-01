@@ -71,6 +71,10 @@ Hecho:
   - `equipo:isapi <id> GET|POST <ruta>` (CLI) para diagnosticar contra el equipo, sólo lectura.
 - Lector simulado con pantalla web (`/simulador/:id`) y modo sólo lectura.
 - Login (cookie de sesión 60 días, scrypt, rate limit, chequeo de origen) y CLI de usuarios.
+- **Usuarios y roles** (`routes/users.ts`, `adminOnly` en `routes/auth.ts`): `admin` todo; `manager` (dueños)
+  Personal, Asistencia, Reportes, Novedades y Horarios, sin Equipos ni Usuarios (lo aplica el servidor).
+  Contraseña provisoria (`must_change_password`): hasta cambiarla sólo puede usar `/api/auth/*`. Pantallas
+  Mi cuenta (tocar el nombre arriba) y Usuarios (admin). CLI: `--provisoria`, `usuario:desactivar/activar`.
 - Alta/baja de sucursales y equipos desde la app; prueba de conexión.
 - Docker + despliegue por entornos; instructivo. Pruebas y producción andando en 10.10.70.5 (31/10).
 - **Personal**: alta con foto desde el celular, edición, baja/re-alta, importar personas de un equipo.
@@ -106,8 +110,7 @@ Pendiente, en orden (01/11):
    alta con foto desde la app y prueba que lo reconozca. Valida `upsertPerson`/`setFace` contra el equipo real.
 2. **Dejar de cargar personas en HikCentral** y pasar los dos lectores de producción a lectura/escritura
    (si cargan los dos se pisan). HikCentral queda sólo de consulta hasta apagarlo.
-3. Usuarios de los dueños en producción (`usuario:crear … manager`). Pendiente en la app: que `manager` no
-   pueda tocar Equipos, cambio de contraseña en el primer login y desactivar usuarios.
+3. Crear los usuarios de los dueños desde la app (Mi cuenta → Usuarios, rol Encargado, contraseña provisoria).
 4. Red: filtrar el port-forward `:1082` a la IP de salida 181.191.64.9 (probar desde otra IP); cerrar o
    filtrar HikCentral publicado en `190.18.165.32:1080` por HTTP; más adelante WireGuard.
 5. Historial anterior a septiembre: exportar de HikCentral «Registros de entradas y salidas» e importarlo

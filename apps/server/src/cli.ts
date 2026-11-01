@@ -1,7 +1,9 @@
 /**
  * Tareas de administración por consola.
- *   node dist/cli.js usuario:crear <email> "<nombre>" [admin|manager]
- *   node dist/cli.js usuario:clave <email>
+ *   node dist/cli.js usuario:crear <email> "<nombre>" [admin|manager] [--provisoria]
+ *   node dist/cli.js usuario:clave <email> [--provisoria]
+ *       (--provisoria: la tiene que cambiar al entrar; los usuarios también se manejan desde la app)
+ *   node dist/cli.js usuario:desactivar <email> | usuario:activar <email>
  *   node dist/cli.js usuario:listar
  *   node dist/cli.js db:respaldo [carpeta] [dias_a_conservar]
  *   node dist/cli.js equipo:crear "<sucursal>" "<nombre>" <host[:puerto]> <usuario> [--solo-lectura]
@@ -57,35 +59,51 @@ async function main() {
 
   switch (cmd) {
     case 'usuario:crear': {
-      const [email, name, role = 'admin'] = args;
+      const provisoria = args.includes('--provisoria');
+      const [email, name, role = 'admin'] = args.filter((a) => !a.startsWith('--'));
       if (!email || !name || (role !== 'admin' && role !== 'manager')) {
-        throw new Error('Uso: usuario:crear <email> "<nombre>" [admin|manager]');
+        throw new Error('Uso: usuario:crear <email> "<nombre>" [admin|manager] [--provisoria]');
       }
       const password = await askPassword();
       if (password.length < 10) throw new Error('La contraseña debe tener al menos 10 caracteres');
       db.insert(appUsers)
-        .values({ email: email.toLowerCase(), name, role, passwordHash: await hashPassword(password) })
+        .values({ email: email.toLowerCase(), name, role, passwordHash: await hashPassword(password), mustChangePassword: provisoria })
         .run();
-      console.log(`Usuario ${email} creado (${role}).`);
+      audit(ctx, null, { action: 'usuario.crear', summary: `Creó el usuario ${name} (${email}, ${role}) por consola` });
+      console.log(`Usuario ${email} creado (${role})${provisoria ? ', con contraseña provisoria' : ''}.`);
       break;
     }
     case 'usuario:clave': {
-      const [email] = args;
-      if (!email) throw new Error('Uso: usuario:clave <email>');
+      const provisoria = args.includes('--provisoria');
+      const [email] = args.filter((a) => !a.startsWith('--'));
+      if (!email) throw new Error('Uso: usuario:clave <email> [--provisoria]');
       const user = db.select().from(appUsers).where(eq(appUsers.email, email.toLowerCase())).get();
       if (!user) throw new Error(`No existe el usuario ${email}`);
       const password = await askPassword();
       if (password.length < 10) throw new Error('La contraseña debe tener al menos 10 caracteres');
-      db.update(appUsers).set({ passwordHash: await hashPassword(password), updatedAt: new Date() })
+      db.update(appUsers).set({ passwordHash: await hashPassword(password), mustChangePassword: provisoria, updatedAt: new Date() })
         .where(eq(appUsers.id, user.id)).run();
       db.delete(sessions).where(eq(sessions.userId, user.id)).run();
-      console.log(`Contraseña actualizada; se cerraron las sesiones de ${email}.`);
+      audit(ctx, null, { action: 'usuario.clave', summary: `Cambió la contraseña de ${user.name} por consola` });
+      console.log(`Contraseña actualizada${provisoria ? ' (provisoria)' : ''}; se cerraron las sesiones de ${email}.`);
       break;
     }
     case 'usuario:listar': {
       for (const u of db.select().from(appUsers).all()) {
-        console.log(`${u.id}\t${u.email}\t${u.name}\t${u.role}\t${u.active ? 'activo' : 'inactivo'}`);
+        console.log(`${u.id}\t${u.email}\t${u.name}\t${u.role}\t${u.active ? 'activo' : 'inactivo'}${u.mustChangePassword ? '\tclave provisoria' : ''}`);
       }
+      break;
+    }
+    case 'usuario:desactivar':
+    case 'usuario:activar': {
+      const [email] = args;
+      const user = email && db.select().from(appUsers).where(eq(appUsers.email, email.toLowerCase())).get();
+      if (!user) throw new Error(email ? `No existe el usuario ${email}` : `Uso: ${cmd} <email>`);
+      const active = cmd === 'usuario:activar';
+      db.update(appUsers).set({ active, updatedAt: new Date() }).where(eq(appUsers.id, user.id)).run();
+      if (!active) db.delete(sessions).where(eq(sessions.userId, user.id)).run();
+      audit(ctx, null, { action: 'usuario.editar', summary: `Usuario ${user.name}: ${active ? 'lo reactivó' : 'lo desactivó'} por consola` });
+      console.log(`${user.email} ${active ? 'activado' : 'desactivado (se cerraron sus sesiones)'}.`);
       break;
     }
     case 'db:respaldo': {
@@ -218,7 +236,7 @@ async function main() {
     }
     default:
       console.log(
-        'Comandos: usuario:crear, usuario:clave, usuario:listar, db:respaldo, equipo:crear, equipo:listar, equipo:importar, marcaciones:leer, historial:importar',
+        'Comandos: usuario:crear, usuario:clave, usuario:listar, usuario:desactivar, usuario:activar, db:respaldo, equipo:crear, equipo:listar, equipo:importar, marcaciones:leer, historial:importar',
       );
   }
 }

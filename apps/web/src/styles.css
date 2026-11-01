@@ -256,3 +256,5 @@ tr.group-start td { border-top: 2px solid var(--border); }
 .card.mark.voided { opacity: 0.7; border-style: dashed; }
 .history-list li { border-left: 3px solid var(--border); padding: 2px 0 2px 10px; }
 a.link { color: var(--accent); text-decoration: none; }
+.form label > input:not([type=checkbox]), .form label > select { width: 100%; min-width: 0; }
+.form.card { justify-content: normal; }

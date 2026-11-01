@@ -1,7 +1,8 @@
-import { NavLink, Route, Routes } from 'react-router';
+import { Link, NavLink, Route, Routes } from 'react-router';
 import { useAuth } from './auth';
 import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
 import { AbsencesPage } from './pages/Absences';
+import { AccountPage, ForcedPasswordPage } from './pages/Account';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { HistoryPage } from './pages/History';
@@ -10,6 +11,7 @@ import { PersonalPage } from './pages/Personal';
 import { ReportsPage } from './pages/Reports';
 import { SchedulesPage } from './pages/Schedules';
 import { SimulatorPage } from './pages/Simulator';
+import { UsersPage } from './pages/Users';
 
 const tabs = [
   { to: '/', label: 'Personal', icon: '👤' },
@@ -17,13 +19,16 @@ const tabs = [
   { to: '/reportes', label: 'Reportes', icon: '📊' },
   { to: '/novedades', label: 'Novedades', icon: '🗓️' },
   { to: '/horarios', label: 'Horarios', icon: '🕒' },
-  { to: '/equipos', label: 'Equipos', icon: '📟' },
+  { to: '/equipos', label: 'Equipos', icon: '📟', admin: true },
 ];
 
 export function App() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <LoginPage />;
+  if (user.mustChangePassword) return <ForcedPasswordPage />;
+  const isAdmin = user.role === 'admin';
+  const visibleTabs = tabs.filter((t) => !t.admin || isAdmin);
 
   return (
     <EntornoProvider>
@@ -31,10 +36,9 @@ export function App() {
       <EntornoBanner />
       <header className="topbar">
         <Brand />
-        <span className="muted small">{user.name}</span>
-        <button className="link small" onClick={logout}>
-          Salir
-        </button>
+        <Link className="link small" to="/cuenta" title="Mi cuenta">
+          {user.name}
+        </Link>
       </header>
       <main className="content">
         <Routes>
@@ -44,12 +48,14 @@ export function App() {
           <Route path="/reportes" element={<ReportsPage />} />
           <Route path="/historial" element={<HistoryPage />} />
           <Route path="/asistencia" element={<AttendancePage />} />
-          <Route path="/equipos" element={<DevicesPage />} />
-          <Route path="/simulador/:id" element={<SimulatorPage />} />
+          <Route path="/cuenta" element={<AccountPage />} />
+          {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
+          {isAdmin && <Route path="/usuarios" element={<UsersPage />} />}
+          {isAdmin && <Route path="/simulador/:id" element={<SimulatorPage />} />}
         </Routes>
       </main>
-      <nav className="tabbar">
-        {tabs.map((t) => (
+      <nav className="tabbar" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+        {visibleTabs.map((t) => (
           <NavLink key={t.to} to={t.to} end className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
             <span aria-hidden>{t.icon}</span>
             <span>{t.label}</span>

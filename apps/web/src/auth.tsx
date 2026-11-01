@@ -6,6 +6,8 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'manager';
+  /** Contraseña provisoria: la app sólo muestra el cambio de contraseña. */
+  mustChangePassword: boolean;
 }
 
 interface AuthState {
@@ -13,6 +15,8 @@ interface AuthState {
   loading: boolean;
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
+  /** Actualiza el usuario después de cambiar la contraseña. */
+  setUser(u: User): void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -38,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthState {

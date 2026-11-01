@@ -50,6 +50,13 @@
       "when": 1793564929004,
       "tag": "0006_historial_cambios",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793567650807,
+      "tag": "0007_clave_provisoria",
+      "breakpoints": true
     }
   ]
 }

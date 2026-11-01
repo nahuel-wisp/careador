@@ -133,6 +133,8 @@ export const appUsers = sqliteTable(
     passwordHash: text('password_hash').notNull(),
     role: text('role', { enum: ['admin', 'manager'] }).notNull().default('manager'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
+    /** Contraseña provisoria (la puso un admin): hasta cambiarla no puede usar la app. */
+    mustChangePassword: integer('must_change_password', { mode: 'boolean' }).notNull().default(false),
     ...timestamps,
   },
   (t) => [uniqueIndex('app_users_email_uq').on(t.email)],
