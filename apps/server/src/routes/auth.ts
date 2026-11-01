@@ -51,7 +51,7 @@ const WHILE_MUST_CHANGE = new Set(['/api/auth/me', '/api/auth/logout', '/api/aut
 /**
  * Lo que sólo puede hacer un administrador: equipos (salvo verlos), sucursales nuevas, usuarios, importar el
  * historial de HikCentral y el simulador.
- * Los encargados (`manager`, los dueños) usan Personal, Asistencia, Novedades, Horarios y Reportes.
+ * Los operadores (`manager`) usan Personal, Asistencia, Novedades, Horarios y Reportes.
  */
 function adminOnly(method: string, path: string) {
   return (

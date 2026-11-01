@@ -85,7 +85,7 @@ export function AccountPage() {
     <section>
       <h1>Mi cuenta</h1>
       <p className="muted">
-        {user.name} · usuario «{user.username}» · {user.role === 'admin' ? 'administrador' : 'encargado'}
+        {user.name} · usuario «{user.username}» · {user.role === 'admin' ? 'administrador' : 'operador'}
       </p>
       <ChangePassword />
       <button className="link danger" onClick={logout}>

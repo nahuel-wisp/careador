@@ -9,7 +9,7 @@ import { usernameRule } from './auth';
 
 const password = z.string().min(10, 'La contraseña tiene que tener al menos 10 caracteres').max(200);
 const role = z.enum(['admin', 'manager']);
-const ROLE: Record<string, string> = { admin: 'administrador', manager: 'encargado' };
+const ROLE: Record<string, string> = { admin: 'administrador', manager: 'operador' };
 
 /** Lo que se muestra de un usuario (nunca el hash). */
 const view = (u: typeof appUsers.$inferSelect) => ({

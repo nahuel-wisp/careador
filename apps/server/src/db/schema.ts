@@ -123,7 +123,7 @@ export const events = sqliteTable(
   ],
 );
 
-/** Usuarios de la app (dueños / encargados). */
+/** Usuarios de la app (administradores y operadores). */
 export const appUsers = sqliteTable(
   'app_users',
   {

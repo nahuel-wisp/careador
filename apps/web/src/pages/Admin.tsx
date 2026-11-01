@@ -7,7 +7,7 @@ const SECTIONS = [
   { to: '/historial', icon: '🧾', title: 'Historial de cambios', text: 'Quién cambió qué y cuándo.' },
 ];
 
-/** Administración: lo que no es del uso diario de los encargados. */
+/** Administración: lo que no es del uso diario de los operadores. */
 export function AdminPage() {
   return (
     <section>

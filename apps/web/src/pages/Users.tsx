@@ -12,7 +12,7 @@ interface AppUser {
   mustChangePassword: boolean;
 }
 
-const ROLE = { admin: 'Administrador', manager: 'Encargado' };
+const ROLE = { admin: 'Administrador', manager: 'Operador' };
 
 /** Usuarios de la app (sólo administradores). Las contraseñas que se ponen acá son provisorias. */
 export function UsersPage() {
@@ -50,7 +50,7 @@ export function UsersPage() {
     <section>
       <AdminHeader title="Usuarios">{!adding && <button onClick={() => setAdding(true)}>Agregar</button>}</AdminHeader>
       <p className="muted small">
-        Encargado: Personal, Asistencia, Novedades, Horarios y Reportes. Administrador: todo, incluidos Equipos y
+        Operador: carga y consulta Personal, Asistencia, Novedades, Horarios y Reportes. Administrador: todo, incluidos Equipos y
         Usuarios. La contraseña que pongas es provisoria y se cambia al entrar.
       </p>
       {error && <p className="error">{error}</p>}
@@ -96,7 +96,7 @@ export function UsersPage() {
                     onChange={(e) => patch(u, { role: e.target.value as AppUser['role'] })}
                     aria-label={`Rol de ${u.name}`}
                   >
-                    <option value="manager">Encargado</option>
+                    <option value="manager">Operador</option>
                     <option value="admin">Administrador</option>
                   </select>
                   {u.active ? (
@@ -169,7 +169,7 @@ function UserForm({ onDone }: { onDone(): void }) {
       <label>
         Rol
         <select value={f.role} onChange={set('role')}>
-          <option value="manager">Encargado</option>
+          <option value="manager">Operador</option>
           <option value="admin">Administrador</option>
         </select>
       </label>

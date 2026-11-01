@@ -19,7 +19,7 @@ describe('usuarios, roles y contraseña provisoria', () => {
   });
   afterAll(() => t.close());
 
-  it('el admin crea un encargado con contraseña provisoria, que la tiene que cambiar al entrar', async () => {
+  it('el admin crea un operador con contraseña provisoria, que la tiene que cambiar al entrar', async () => {
     const res = await admin('POST', '/api/users', { username: 'Ana', name: 'Ana', role: 'manager', password: 'provisoria-123' });
     expect(res.statusCode).toBe(201);
     ana = res.json();
@@ -40,7 +40,7 @@ describe('usuarios, roles y contraseña provisoria', () => {
     expect((await ana$('GET', '/api/employees')).statusCode).toBe(200);
   });
 
-  it('un encargado usa personal, asistencia y reportes, pero no equipos ni usuarios', async () => {
+  it('un operador usa personal, asistencia y reportes, pero no equipos ni usuarios', async () => {
     const ana$ = as((await login('ana', 'nueva-clave-456')).cookie);
     expect((await ana$('GET', '/api/devices')).statusCode).toBe(200); // ver sí (Personal muestra a qué equipo llegó)
     expect((await ana$('POST', '/api/devices', { siteId: 1, name: 'x', brand: 'simulador', host: 'x', username: 'x', password: 'x' })).statusCode).toBe(403);
@@ -69,7 +69,7 @@ describe('usuarios, roles y contraseña provisoria', () => {
     const hist = (await admin('GET', '/api/audit')).json().map((h: { summary: string }) => h.summary);
     expect(hist).toEqual(
       expect.arrayContaining([
-        'Creó el usuario Ana: «ana», encargado',
+        'Creó el usuario Ana: «ana», operador',
         'Ana cambió su contraseña',
         'Usuario Ana: lo desactivó',
         'Le puso una contraseña provisoria a Ana',
