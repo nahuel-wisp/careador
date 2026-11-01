@@ -1,13 +1,6 @@
 # Versiones de Control Horario
 
-Cada versión se numera **VERSIÓN.FUNCIÓN.CORRECCIÓN**:
-
-- **VERSIÓN** sube con un cambio grande que cambia la forma de usar la app.
-- **FUNCIÓN** sube cuando se agrega algo nuevo.
-- **CORRECCIÓN** sube cuando se arregla algo que andaba mal.
-
-La versión más nueva va arriba. Lo que se escribe acá es lo que ven los usuarios en la app al entrar después de
-una actualización y en Ayuda › Versiones.
+<!-- Uso interno: numeración y ciclo en docs/despliegue.md §6. La app muestra sólo las entradas «## X.Y.Z — fecha». -->
 
 ## 1.0.0 — 2026-11-01
 
