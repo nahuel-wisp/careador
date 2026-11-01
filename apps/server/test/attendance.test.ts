@@ -84,7 +84,8 @@ describe('marcaciones y asistencia del día', () => {
     };
     let by = await get();
     expect(by('1')).toMatchObject({ status: 'presente', lateMin: 0, earlyMin: 0, schedule: { name: 'Arsa 2' }, workedMin: 550, workedSiteId: site.id });
-    expect(by('2')).toMatchObject({ status: 'presente', lateMin: 72, missingOut: true, schedule: { name: 'Temprano' } });
+    // Beto marcó una sola vez: a revisar, sin calcular tardanza.
+    expect(by('2')).toMatchObject({ status: 'presente', lateMin: 0, missingOut: true, review: true, schedule: { name: 'Temprano' } });
     expect(by('3')).toMatchObject({ status: 'ausente' });
 
     // Caro estuvo enferma: se carga la novedad con el certificado.
@@ -120,6 +121,25 @@ describe('marcaciones y asistencia del día', () => {
     expect((await inject('POST', '/api/absences', { employeeId: null, kind: 'feriado', dateFrom: day(-2), dateTo: day(-2) })).statusCode).toBe(201);
     const antes = (await inject('GET', `/api/attendance?date=${day(-2)}`)).json();
     expect(antes.employees.find((e: { code: string }) => e.code === '1')).toMatchObject({ status: 'novedad' });
+
+    // Beto se olvidó de marcar la salida: se corrige a mano y ya se puede medir (72 min tarde).
+    expect((await inject('POST', '/api/marks', { employeeId: id('2'), date: day(-1), time: '18:00', note: 'x' })).statusCode).toBe(400);
+    const mark = (await inject('POST', '/api/marks', { employeeId: id('2'), date: day(-1), time: '18:00', note: 'Se olvidó de marcar' })).json();
+    by = await get();
+    expect(by('2')).toMatchObject({ lateMin: 72, missingOut: false, review: false, out: { device: 'Carga manual' } });
+    expect(by('2').manualMarks).toEqual([expect.objectContaining({ note: 'Se olvidó de marcar', by: 'Dueño' })]);
+    const rep = (await inject('GET', `/api/reports?from=${day(-1)}&to=${day(-1)}&employeeId=${id('2')}`)).json();
+    expect(rep.records[0].manualNotes[0]).toContain('Se olvidó de marcar');
+    expect(rep.summary[0]).toMatchObject({ manualDays: 1, lateCount: 1, review: 0 });
+
+    // Ayer Ana tenía un horario especial (8 a 18:30): llegó 55 min tarde y se fue 25 antes.
+    await inject('POST', '/api/absences', { employeeId: id('1'), kind: 'horario_especial', dateFrom: day(-1), dateTo: day(-1), startTime: '08:00', endTime: '18:30' });
+    expect((await get())('1')).toMatchObject({ expected: { start: '08:00', end: '18:30' }, lateMin: 55, earlyMin: 25 });
+    expect((await inject('POST', '/api/absences', { employeeId: id('1'), kind: 'horario_especial', dateFrom: day(-1), dateTo: day(-1) })).statusCode).toBe(400);
+
+    // Las marcas de los equipos no se borran; las manuales sí.
+    expect((await t.app.inject({ method: 'DELETE', url: `/api/marks/${mark.id}`, headers: t.headers })).statusCode).toBe(200);
+    expect((await get())('2')).toMatchObject({ review: true, manualMarks: [] });
 
     // Volver al horario de la sucursal desde hoy deja el historial de ayer intacto.
     await inject('PUT', `/api/employees/${id('2')}/schedule`, { scheduleId: null, from: day(0) });

@@ -20,6 +20,9 @@ interface ReportRow {
   earlyMin: number;
   missingOut: boolean;
   missingIn: boolean;
+  review: boolean;
+  manualNotes: string[];
+  otherMarks: string[];
   absences: AbsenceKind[];
 }
 
@@ -37,7 +40,8 @@ interface Summary {
   lateMin: number;
   earlyCount: number;
   earlyMin: number;
-  missingOut: number;
+  review: number;
+  manualDays: number;
   workedMin: number;
 }
 
@@ -92,12 +96,29 @@ function remarks(r: ReportRow) {
     r.status === 'ausente' ? 'Ausente' : null,
     r.lateMin ? `Tarde ${r.lateMin} min` : null,
     r.earlyMin ? `Salió ${r.earlyMin} min antes` : null,
-    r.missingOut ? 'Sin salida' : null,
-    r.missingIn ? 'Sin entrada' : null,
+    r.review ? `A revisar: ${r.in ? 'sin salida' : 'sin entrada'}` : r.missingOut ? 'Sin salida' : r.missingIn ? 'Sin entrada' : null,
+    r.manualNotes.length ? `Corregido a mano: ${r.manualNotes.join('; ')}` : null,
     ...r.absences.map((k) => KIND_SHORT[k]),
+    r.otherMarks.length ? `Otras marcas: ${r.otherMarks.join(', ')}` : null,
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+/** CSV del detalle día por día (separado por «;» para que Excel en español lo abra en columnas). */
+function downloadCsv(report: Report) {
+  const cell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [
+    ['Legajo', 'Nombre', 'Apellido', 'Sucursal', 'Fecha', 'Día', 'Entrada', 'Salida', 'Minutos trabajados', 'Horario', 'Observaciones'],
+    ...report.records.map((r) => [r.code, r.firstName, r.lastName, r.site, r.date, r.weekday, r.in ?? '', r.out ?? '', r.workedMin, r.expected ?? '', remarks(r)]),
+  ];
+  // BOM para que Excel reconozca UTF-8 (acentos).
+  const blob = new Blob(['﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `asistencia_${report.from}_${report.to}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 /** Reportes por período, sucursal y persona: resumen y detalle día por día, para ver, imprimir/PDF o Excel. */
@@ -153,9 +174,9 @@ export function ReportsPage() {
       late: t.late + s.lateCount,
       absent: t.absent + s.absentDays,
       justified: t.justified + s.justifiedDays,
-      missing: t.missing + s.missingOut,
+      review: t.review + s.review,
     }),
-    { worked: 0, min: 0, late: 0, absent: 0, justified: 0, missing: 0 },
+    { worked: 0, min: 0, late: 0, absent: 0, justified: 0, review: 0 },
   );
   // Detalle: por empleado y fecha.
   const records = [...(report?.records ?? [])].sort(
@@ -207,23 +228,24 @@ export function ReportsPage() {
             ))}
           </select>
         </div>
-        <div className="row">
-          <div className="segmented">
-            <button className={view === 'resumen' ? 'active' : ''} onClick={() => setView('resumen')}>
-              Resumen
-            </button>
-            <button className={view === 'detalle' ? 'active' : ''} onClick={() => setView('detalle')}>
-              Día por día
-            </button>
-          </div>
-          <div className="actions">
-            <button className="secondary" onClick={() => window.print()} disabled={!report}>
-              PDF
-            </button>
-            <a className="button secondary" href={`/api/reports.xlsx?${query}`} download>
-              Excel
-            </a>
-          </div>
+        <div className="segmented">
+          <button className={view === 'resumen' ? 'active' : ''} onClick={() => setView('resumen')}>
+            Resumen
+          </button>
+          <button className={view === 'detalle' ? 'active' : ''} onClick={() => setView('detalle')}>
+            Día por día
+          </button>
+        </div>
+        <div className="actions export">
+          <button className="secondary" onClick={() => window.print()} disabled={!report} title="Imprimir o guardar como PDF">
+            Imprimir
+          </button>
+          <a className="button secondary" href={`/api/reports.xlsx?${query}`} download>
+            Excel
+          </a>
+          <button className="secondary" onClick={() => report && downloadCsv(report)} disabled={!report}>
+            CSV
+          </button>
         </div>
       </div>
 
@@ -267,9 +289,9 @@ export function ReportsPage() {
                     <b>{totals.justified}</b>
                     <span>justificadas</span>
                   </div>
-                  <div className={totals.missing ? 'warn' : ''}>
-                    <b>{totals.missing}</b>
-                    <span>marcas faltantes</span>
+                  <div className={totals.review ? 'warn' : ''}>
+                    <b>{totals.review}</b>
+                    <span>a revisar</span>
                   </div>
                 </div>
               )}
@@ -283,7 +305,7 @@ export function ReportsPage() {
                       <th>Tarde</th>
                       <th>Salió antes</th>
                       <th>Ausente</th>
-                      <th>Marca faltante</th>
+                      <th>A revisar</th>
                       <th>Novedades</th>
                     </tr>
                   </thead>
@@ -302,7 +324,7 @@ export function ReportsPage() {
                         <td className={s.lateCount ? 'bad' : ''}>{s.lateCount ? `${s.lateCount} (${s.lateMin}′)` : '–'}</td>
                         <td className={s.earlyCount ? 'bad' : ''}>{s.earlyCount ? `${s.earlyCount} (${s.earlyMin}′)` : '–'}</td>
                         <td className={s.absentDays ? 'bad' : ''}>{s.absentDays || '–'}</td>
-                        <td className={s.missingOut ? 'warn' : ''}>{s.missingOut || '–'}</td>
+                        <td className={s.review ? 'warn' : ''}>{s.review || '–'}</td>
                         <td className="small">
                           {Object.entries(s.byKind)
                             .map(([k, n]) => `${KIND_SHORT[k as AbsenceKind]} ${n}`)
@@ -352,11 +374,11 @@ export function ReportsPage() {
                         <td className="nowrap">
                           {r.weekday.slice(0, 3)} {shortDate(r.date)}
                         </td>
-                        <td>{r.in ?? '–'}</td>
-                        <td>{r.out ?? '–'}</td>
+                        <td className={r.review && r.in ? 'guess' : ''}>{r.in ?? '–'}</td>
+                        <td className={r.review && r.out ? 'guess' : ''}>{r.out ?? '–'}</td>
                         <td>{r.workedMin ? hours(r.workedMin) : '–'}</td>
                         <td className="muted small nowrap">{r.expected ?? 'libre'}</td>
-                        <td className={r.status === 'ausente' || r.lateMin || r.earlyMin ? 'bad small' : r.missingOut || r.missingIn ? 'warn small' : 'small'}>
+                        <td className={r.status === 'ausente' || r.lateMin || r.earlyMin ? 'bad small' : r.review || r.manualNotes.length ? 'warn small' : 'small'}>
                           {remarks(r)}
                         </td>
                       </tr>

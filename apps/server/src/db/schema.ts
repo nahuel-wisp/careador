@@ -96,8 +96,8 @@ export const events = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     /** null en las marcaciones importadas de un Excel (historial de HikCentral). */
     deviceId: integer('device_id').references(() => devices.id),
-    /** 'device' = leída de un equipo; 'import' = importada de un Excel. */
-    source: text('source', { enum: ['device', 'import'] }).notNull().default('device'),
+    /** 'device' = leída de un equipo; 'import' = importada de un Excel; 'manual' = corregida a mano (raw: motivo y quién). */
+    source: text('source', { enum: ['device', 'import', 'manual'] }).notNull().default('device'),
     deviceEventId: text('device_event_id').notNull(),
     time: integer('time', { mode: 'timestamp' }).notNull(),
     kind: text('kind').notNull(),
@@ -193,6 +193,7 @@ export const ABSENCE_KINDS = [
   'feriado',
   'permiso_tarde',
   'permiso_salida',
+  'horario_especial',
   'otro',
 ] as const;
 export type AbsenceKind = (typeof ABSENCE_KINDS)[number];
@@ -209,6 +210,9 @@ export const absences = sqliteTable(
     kind: text('kind', { enum: ABSENCE_KINDS }).notNull(),
     dateFrom: text('date_from').notNull(),
     dateTo: text('date_to').notNull(),
+    /** Sólo «horario_especial»: entrada y salida "HH:MM" que reemplazan al horario esos días. */
+    startTime: text('start_time'),
+    endTime: text('end_time'),
     note: text('note'),
     createdBy: integer('created_by').references(() => appUsers.id, { onDelete: 'set null' }),
     ...timestamps,

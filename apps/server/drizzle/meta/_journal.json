@@ -36,6 +36,13 @@
       "when": 1793561474924,
       "tag": "0004_historial_importado",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793564216388,
+      "tag": "0005_correcciones_horario_especial",
+      "breakpoints": true
     }
   ]
 }

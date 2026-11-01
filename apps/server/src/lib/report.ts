@@ -52,6 +52,12 @@ export interface ReportRecord {
   earlyMin: number;
   missingOut: boolean;
   missingIn: boolean;
+  /** Una sola marca: entrada o salida es una sugerencia, queda a revisar. */
+  review: boolean;
+  /** Alguna marca del día se cargó a mano (motivos en `manualNotes`). */
+  manualNotes: string[];
+  /** Marcas del medio ("HH:MM"), que no cuentan. */
+  otherMarks: string[];
   absences: AbsenceKind[];
 }
 
@@ -69,8 +75,10 @@ export interface ReportSummary {
   lateMin: number;
   earlyCount: number;
   earlyMin: number;
-  /** Días con una marca faltante (sin entrada o sin salida). */
-  missingOut: number;
+  /** Días a revisar (una sola marca, sin permiso). */
+  review: number;
+  /** Días con alguna marca corregida a mano. */
+  manualDays: number;
   workedMin: number;
 }
 
@@ -109,6 +117,9 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
         earlyMin: e.earlyMin,
         missingOut: e.missingOut,
         missingIn: e.missingIn,
+        review: e.review,
+        manualNotes: e.manualMarks.map((m) => `${hhmm(m.time)} ${m.note} (${m.by})`),
+        otherMarks: e.otherMarks.map((m) => hhmm(m.time)),
         absences: e.absences.map((a) => a.kind),
       });
 
@@ -129,7 +140,8 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
             lateMin: 0,
             earlyCount: 0,
             earlyMin: 0,
-            missingOut: 0,
+            review: 0,
+            manualDays: 0,
             workedMin: 0,
           })
           .get(e.employeeId)!;
@@ -140,7 +152,8 @@ export function buildReport(ctx: AppContext, q: ReportQuery) {
       for (const a of e.absences) s.byKind[a.kind] = (s.byKind[a.kind] ?? 0) + 1;
       if (e.lateMin) (s.lateCount++, (s.lateMin += e.lateMin));
       if (e.earlyMin) (s.earlyCount++, (s.earlyMin += e.earlyMin));
-      if (e.missingOut || e.missingIn) s.missingOut++;
+      if (e.review) s.review++;
+      if (e.manualMarks.length) s.manualDays++;
       s.workedMin += e.workedMin;
     }
   }
@@ -164,6 +177,7 @@ const KIND: Record<AbsenceKind, string> = {
   feriado: 'Feriado',
   permiso_tarde: 'Permiso llegada',
   permiso_salida: 'Permiso salida',
+  horario_especial: 'Horario especial',
   otro: 'Otro',
 };
 
@@ -173,9 +187,10 @@ export function remarks(r: ReportRecord) {
     r.status === 'ausente' ? 'Ausente' : null,
     r.lateMin ? `Tarde ${r.lateMin} min` : null,
     r.earlyMin ? `Salió ${r.earlyMin} min antes` : null,
-    r.missingOut ? 'Sin salida' : null,
-    r.missingIn ? 'Sin entrada' : null,
+    r.review ? `A revisar: ${r.in ? 'sin salida' : 'sin entrada'}` : r.missingOut ? 'Sin salida' : r.missingIn ? 'Sin entrada' : null,
+    r.manualNotes.length ? `Corregido a mano: ${r.manualNotes.join('; ')}` : null,
     ...r.absences.map((k) => KIND[k]),
+    r.otherMarks.length ? `Otras marcas: ${r.otherMarks.join(', ')}` : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -202,12 +217,14 @@ export async function reportXlsx(ctx: AppContext, report: Report) {
   const sorted = [...report.records].sort((a, b) => a.lastName.localeCompare(b.lastName, 'es') || a.firstName.localeCompare(b.firstName, 'es') || b.date.localeCompare(a.date));
   for (const r of sorted) {
     const row = reg.addRow([r.firstName, r.lastName, r.site, r.date, r.weekday, r.in ?? '-', r.out ?? '-', dur(r.workedMin), r.expected ?? '', remarks(r)]);
-    if (r.status === 'ausente' || r.lateMin || r.earlyMin || r.missingOut || r.missingIn) row.getCell(10).font = { color: { argb: 'FFDC2626' } };
+    // Rojo: ausencia, tardanza o salida antes. Ámbar: a revisar o corregido a mano.
+    if (r.status === 'ausente' || r.lateMin || r.earlyMin) row.getCell(10).font = { color: { argb: 'FFDC2626' } };
+    else if (r.review || r.manualNotes.length) row.getCell(10).font = { color: { argb: 'FFB45309' } };
   }
   reg.columns.forEach((c, i) => (c.width = [14, 16, 14, 12, 11, 12, 10, 10, 13, 34][i]));
 
   const res = wb.addWorksheet('Resumen');
-  const resHead = ['Legajo', 'Empleado', 'Sucursal', 'Días esperados', 'Días trabajados', 'Horas trabajadas', 'Ausencias', 'Justificadas', 'Llegadas tarde', 'Min. tarde', 'Salidas antes', 'Min. antes', 'Marca faltante', 'Novedades'];
+  const resHead = ['Legajo', 'Empleado', 'Sucursal', 'Días esperados', 'Días trabajados', 'Horas trabajadas', 'Ausencias', 'Justificadas', 'Llegadas tarde', 'Min. tarde', 'Salidas antes', 'Min. antes', 'A revisar', 'Corregidos a mano', 'Novedades'];
   title(res, 'Resumen de asistencia', resHead.length);
   res.addRow(resHead).font = { bold: true };
   for (const s of report.summary) {
@@ -224,13 +241,14 @@ export async function reportXlsx(ctx: AppContext, report: Report) {
       s.lateMin,
       s.earlyCount,
       s.earlyMin,
-      s.missingOut,
+      s.review,
+      s.manualDays,
       Object.entries(s.byKind)
         .map(([k, n]) => `${KIND[k as AbsenceKind]} ${n}`)
         .join(' · '),
     ]);
   }
-  res.columns.forEach((c, i) => (c.width = [12, 26, 12, 9, 9, 10, 9, 9, 9, 9, 9, 9, 9, 28][i]));
+  res.columns.forEach((c, i) => (c.width = [12, 26, 12, 9, 9, 10, 9, 9, 9, 9, 9, 9, 9, 10, 28][i]));
 
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

@@ -80,7 +80,13 @@ Hecho:
   entre fechas; por sucursal (donde trabajó ese día) y/o persona. Vista Resumen (por empleado) y Día por día
   (como el Excel de HikCentral, con observaciones). PDF con imprimir del navegador (CSS de impresión) y
   Excel (`/api/reports.xlsx`: hojas «Registros» con las columnas de HikCentral y «Resumen»).
-  Una sola marca en el día cuenta como salida si está más cerca del horario de salida (`splitSingleMark`).
+  Exporta también CSV (del navegador, separado por «;»).
+- **Entrada/salida** (`pickInOut`): entrada = primera marca hasta la mitad del horario, salida = última después;
+  las del medio son «otras marcas» (pasó por el lector) y no cuentan. Si falta una, el día queda **«A revisar»**
+  (la hora es una sugerencia y no se calcula tardanza/salida), salvo permiso de llegada/salida.
+- **Correcciones a mano** (Asistencia → tocar a la persona): marcas con `source = 'manual'`, motivo y quién
+  (en `raw`); se ven como «Corregido a mano» en reportes. Las de los equipos no se borran.
+- Novedad **«Horario especial»**: otra entrada/salida para esos días (reemplaza al horario).
 
 Pendiente, en orden:
 1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY). Lectores:

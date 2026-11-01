@@ -210,7 +210,9 @@ label.inline { display: flex !important; align-items: center; gap: 12px; color: 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { min-height: 34px; padding: 6px 12px; border-radius: 999px; background: transparent; color: var(--fg); border: 1px solid var(--border); font-size: 0.85rem; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: white; }
-.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.segmented { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.segmented button { flex: 1; }
+.actions.export > * { flex: 1; }
 .segmented button { background: transparent; color: var(--fg); border-radius: 0; min-height: 38px; padding: 6px 12px; font-size: 0.9rem; }
 .segmented button.active { background: var(--accent); color: white; }
 .report-head { margin: 4px 0 10px; }
@@ -243,3 +245,6 @@ tr.group-start td { border-top: 2px solid var(--border); }
   .kpis { grid-template-columns: repeat(6, 1fr); }
   .print-only { display: block; }
 }
+.card.clickable { cursor: pointer; }
+.guess { color: #b45309; font-style: italic; }
+.guess::after { content: '?'; }

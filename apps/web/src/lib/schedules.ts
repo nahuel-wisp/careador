@@ -28,6 +28,7 @@ export type AbsenceKind =
   | 'feriado'
   | 'permiso_tarde'
   | 'permiso_salida'
+  | 'horario_especial'
   | 'otro';
 
 export const KIND_LABEL: Record<AbsenceKind, string> = {
@@ -38,6 +39,7 @@ export const KIND_LABEL: Record<AbsenceKind, string> = {
   feriado: 'Feriado (para todos)',
   permiso_tarde: 'Permiso para llegar tarde',
   permiso_salida: 'Permiso para salir antes',
+  horario_especial: 'Horario especial (otro horario esos días)',
   otro: 'Otro motivo',
 };
 
@@ -50,6 +52,7 @@ export const KIND_SHORT: Record<AbsenceKind, string> = {
   feriado: 'Feriado',
   permiso_tarde: 'Permiso llegada',
   permiso_salida: 'Permiso salida',
+  horario_especial: 'Horario especial',
   otro: 'Otro',
 };
 

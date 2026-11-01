@@ -15,7 +15,7 @@ export interface DayInput {
   expected: DaySchedule | null;
   lateToleranceMin: number;
   earlyToleranceMin: number;
-  /** Primera y última marca del día (con una sola marca, va en `in` o en `out` según la hora: ver splitSingleMark). */
+  /** Primera y última marca del día (ver pickInOut). */
   in: Date | null;
   out: Date | null;
   absences: AbsenceKind[];
@@ -34,6 +34,11 @@ export interface DayResult {
   missingOut: boolean;
   /** Marcó sólo la salida. */
   missingIn: boolean;
+  /**
+   * Falta la entrada o la salida (y el horario ya terminó): no se puede saber si llegó tarde o se fue antes,
+   * así que no se calcula y queda para revisar, salvo que haya permiso de llegada/salida.
+   */
+  review: boolean;
   /** Minutos entre primera y última marca. */
   workedMin: number;
 }
@@ -46,7 +51,7 @@ const at = (day: Date, min: number) => new Date(day.getTime() + min * 60_000);
 
 export function evaluateDay(d: DayInput): DayResult {
   const workedMin = d.in && d.out ? Math.round((d.out.getTime() - d.in.getTime()) / 60_000) : 0;
-  const base = { lateMin: 0, earlyMin: 0, missingOut: false, missingIn: false, workedMin };
+  const base = { lateMin: 0, earlyMin: 0, missingOut: false, missingIn: false, review: false, workedMin };
   const justified = d.absences.some((k) => FULL_DAY.includes(k));
 
   if (!d.in && !d.out) {
@@ -67,16 +72,31 @@ export function evaluateDay(d: DayInput): DayResult {
   const early = d.out ? Math.ceil((end.getTime() - d.out.getTime()) / 60_000) : 0;
   const earlyMin = ended && early > d.earlyToleranceMin && !d.absences.includes('permiso_salida') ? early : 0;
 
-  return { status: 'presente', lateMin, earlyMin, missingOut: ended && !d.out, missingIn: !d.in, workedMin };
+  const missingOut = ended && !d.out;
+  const missingIn = !d.in;
+  const permiso = d.absences.includes('permiso_tarde') || d.absences.includes('permiso_salida');
+  const review = (missingIn || missingOut) && !permiso;
+  return review
+    ? { status: 'presente', lateMin: 0, earlyMin: 0, missingOut, missingIn, review, workedMin }
+    : { status: 'presente', lateMin, earlyMin, missingOut, missingIn, review, workedMin };
 }
 
 /**
- * Con una sola marca en el día no se sabe si fue entrada o salida: si está más cerca de la hora de salida
- * del horario que de la de entrada, se toma como salida (como hace HikCentral con sus ventanas de registro).
+ * Entrada y salida del día entre todas sus marcas. Con horario: la entrada es la primera marca hasta la mitad
+ * del horario y la salida la última después de la mitad; lo del medio (pasar por el lector sin querer, ir a
+ * almorzar) queda como «otras marcas» y no cambia nada. Así una sola marca a la tarde se sugiere como salida,
+ * y una pasada a media mañana no se toma como salida de alguien que se olvidó de marcar.
+ * Sin horario (día libre): primera y última, como HikCentral.
  */
-export function splitSingleMark<T extends { time: Date }>(mark: T, expected: DaySchedule | null, day: Date) {
-  if (!expected) return { in: mark, out: null };
-  const min = (mark.time.getTime() - day.getTime()) / 60_000;
-  const isOut = min > (toMin(expected.start) + toMin(expected.end)) / 2;
-  return isOut ? { in: null, out: mark } : { in: mark, out: null };
+export function pickInOut<T extends { time: Date }>(marks: T[], expected: DaySchedule | null, day: Date) {
+  if (!marks.length) return { in: null, out: null, others: [] as T[] };
+  if (!expected) {
+    const last = marks.length > 1 ? marks[marks.length - 1]! : null;
+    return { in: marks[0]!, out: last, others: marks.slice(1, last ? -1 : undefined) };
+  }
+  const mid = (toMin(expected.start) + toMin(expected.end)) / 2;
+  const isOut = (m: T) => (m.time.getTime() - day.getTime()) / 60_000 > mid;
+  const first = marks.find((m) => !isOut(m)) ?? null;
+  const last = [...marks].reverse().find(isOut) ?? null;
+  return { in: first, out: last, others: marks.filter((m) => m !== first && m !== last) };
 }

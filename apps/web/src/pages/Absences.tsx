@@ -16,6 +16,8 @@ interface Absence {
   kind: AbsenceKind;
   dateFrom: string;
   dateTo: string;
+  startTime: string | null;
+  endTime: string | null;
   note: string | null;
   files: AbsenceFile[];
 }
@@ -82,6 +84,7 @@ export function AbsencesPage() {
           <div className="small">
             <span className={`badge kind-${a.kind}`}>{KIND_SHORT[a.kind]}</span>{' '}
             {a.dateFrom === a.dateTo ? shortDate(a.dateFrom) : `${shortDate(a.dateFrom)} al ${shortDate(a.dateTo)}`}
+            {a.kind === 'horario_especial' && ` · ${a.startTime} a ${a.endTime}`}
           </div>
           {a.note && <div className="muted small">{a.note}</div>}
         </div>
@@ -137,6 +140,8 @@ function AbsenceForm({
     kind: absence?.kind ?? ('vacaciones' as AbsenceKind),
     dateFrom: absence?.dateFrom ?? prefill?.date ?? today(),
     dateTo: absence?.dateTo ?? prefill?.date ?? today(),
+    startTime: absence?.startTime ?? '09:00',
+    endTime: absence?.endTime ?? '18:00',
     note: absence?.note ?? '',
   });
   const [files, setFiles] = useState<AbsenceFile[]>(absence?.files ?? []);
@@ -171,6 +176,7 @@ function AbsenceForm({
       kind: f.kind,
       dateFrom: f.dateFrom,
       dateTo: f.dateTo,
+      ...(f.kind === 'horario_especial' ? { startTime: f.startTime, endTime: f.endTime } : {}),
       note: f.note || null,
     });
     try {
@@ -251,6 +257,18 @@ function AbsenceForm({
             <input type="date" value={f.dateTo} min={f.dateFrom} onChange={set('dateTo')} required />
           </label>
         </div>
+        {f.kind === 'horario_especial' && (
+          <div className="two">
+            <label>
+              Entra
+              <input type="time" value={f.startTime} onChange={set('startTime')} required />
+            </label>
+            <label>
+              Sale
+              <input type="time" value={f.endTime} onChange={set('endTime')} required />
+            </label>
+          </div>
+        )}
         <label>
           Nota (opcional)
           <input value={f.note} onChange={set('note')} placeholder="Ej.: turno médico, llega 10:30" maxLength={500} />

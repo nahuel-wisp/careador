@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { api } from '../api';
 import { KIND_SHORT, shortDate, type AbsenceKind, type DaySchedule } from '../lib/schedules';
@@ -25,7 +25,11 @@ interface Row {
   earlyMin: number;
   missingOut: boolean;
   missingIn: boolean;
+  /** Falta la entrada o la salida: lo que se muestra es una sugerencia. */
+  review: boolean;
   workedMin: number;
+  otherMarks: Mark[];
+  manualMarks: { id: number; time: string; note: string; by: string }[];
 }
 
 interface Attendance {
@@ -45,6 +49,7 @@ export function AttendancePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sites, setSites] = useState<{ id: number; name: string }[]>([]);
+  const [detail, setDetail] = useState<number | null>(null);
 
   useEffect(() => {
     api<{ id: number; name: string }[]>('/sites').then(setSites).catch(() => {});
@@ -77,6 +82,12 @@ export function AttendancePage() {
   const off = by('libre');
   const late = present.filter((e) => e.lateMin > 0).length;
   const expectedCount = (data?.employees.length ?? 0) - off.length;
+  const toReview = present.filter((e) => e.review).length;
+  const open = data?.employees.find((e) => e.employeeId === detail);
+
+  if (open) {
+    return <DayDetail row={open} date={date} onChange={() => load()} onClose={() => setDetail(null)} />;
+  }
 
   return (
     <section>
@@ -93,20 +104,22 @@ export function AttendancePage() {
           {present.length} de {expectedCount} vinieron
           {late > 0 && ` · ${late} tarde`}
           {absent.length > 0 && ` · ${absent.length} faltaron`}
+          {toReview > 0 && ` · ${toReview} a revisar`}
           {data.syncedUntil ? ` · leído de los equipos a las ${hhmm(data.syncedUntil)}` : ' · todavía no se leyeron los equipos'}
         </p>
       )}
 
       <ul className="list compact">
         {present.map((e) => (
-          <li key={e.employeeId} className="card attendance">
+          <li key={e.employeeId} className="card attendance clickable" onClick={() => setDetail(e.employeeId)}>
             <div className="grow">
               <strong>{e.name}</strong>
               <div className="badges">
                 {e.lateMin > 0 && <span className="badge bad">Llegó {dur(e.lateMin)} tarde</span>}
                 {e.earlyMin > 0 && <span className="badge bad">Se fue {dur(e.earlyMin)} antes</span>}
-                {e.missingOut && <span className="badge warn-bg">Sin salida</span>}
-                {e.missingIn && <span className="badge warn-bg">Sin entrada</span>}
+                {e.review && <span className="badge warn-bg">A revisar: {e.in ? 'sin salida' : 'sin entrada'}</span>}
+                {!e.review && e.missingOut && <span className="badge warn-bg">Sin salida</span>}
+                {e.manualMarks.length > 0 && <span className="badge warn-bg">✎ Corregido a mano</span>}
                 {e.absences.map((a) => (
                   <span key={a.id} className={`badge kind-${a.kind}`} title={a.note ?? ''}>
                     {KIND_SHORT[a.kind]}
@@ -115,14 +128,18 @@ export function AttendancePage() {
                 {e.workedSiteId !== e.siteId && (
                   <span className="badge">En {sites.find((s) => s.id === e.workedSiteId)?.name ?? 'otra sucursal'}</span>
                 )}
-                {e.marks > 2 && <span className="muted small">{e.marks} marcas</span>}
+                {e.otherMarks.length > 0 && (
+                  <span className="muted small">
+                    +{e.otherMarks.length} {e.otherMarks.length === 1 ? 'marca' : 'marcas'} en el día
+                  </span>
+                )}
               </div>
             </div>
             <div className="times-col">
               <div className="times">
-                <span title={e.in?.device}>{e.in ? hhmm(e.in.time) : '–'}</span>
+                <span title={e.in?.device} className={e.review && e.in ? 'guess' : ''}>{e.in ? hhmm(e.in.time) : '?'}</span>
                 <span className="muted">→</span>
-                <span title={e.out?.device}>{e.out ? hhmm(e.out.time) : '–'}</span>
+                <span title={e.out?.device} className={e.review && e.out ? 'guess' : ''}>{e.out ? hhmm(e.out.time) : '?'}</span>
               </div>
               {e.expected && (
                 <div className="muted small">
@@ -148,9 +165,14 @@ export function AttendancePage() {
                     {e.absences.map((a) => ` · ${KIND_SHORT[a.kind]}`)}
                   </div>
                 </div>
-                <Link className="button secondary small-btn" to={`/novedades?empleado=${e.employeeId}&fecha=${date}`}>
-                  Justificar
-                </Link>
+                <div className="actions">
+                  <button className="secondary small-btn" onClick={() => setDetail(e.employeeId)}>
+                    Corregir
+                  </button>
+                  <Link className="button secondary small-btn" to={`/novedades?empleado=${e.employeeId}&fecha=${date}`}>
+                    Justificar
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -270,5 +292,129 @@ function HistoryImport({ onDone }: { onDone(): void }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Detalle del día de una persona: todas sus marcas (entrada, salida, las del medio y las cargadas a mano) y
+ * la corrección de lo que se olvidó de marcar, con motivo. Para un permiso o cambio de horario: Justificar.
+ */
+function DayDetail({ row, date, onChange, onClose }: { row: Row; date: string; onChange(): void; onClose(): void }) {
+  const [f, setF] = useState({ in: '', out: '', note: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+
+  const marks = [
+    row.in && { ...row.in, label: row.review ? 'Entrada (sugerida)' : 'Entrada' },
+    ...row.otherMarks.map((m) => ({ ...m, label: 'Pasó por el lector (no cuenta)' })),
+    row.out && { ...row.out, label: row.review ? 'Salida (sugerida)' : 'Salida' },
+  ].filter((m): m is Mark & { label: string } => !!m);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!f.in && !f.out) return setError('Poné la hora de entrada, de salida o las dos');
+    setBusy(true);
+    setError(null);
+    try {
+      for (const time of [f.in, f.out].filter(Boolean)) {
+        await api('/marks', { method: 'POST', body: JSON.stringify({ employeeId: row.employeeId, date, time, note: f.note }) });
+      }
+      setF({ in: '', out: '', note: '' });
+      onChange();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar');
+    }
+    setBusy(false);
+  }
+
+  async function remove(id: number) {
+    if (!confirm('¿Borrar esta corrección?')) return;
+    await api(`/marks/${id}`, { method: 'DELETE' }).catch((e: Error) => setError(e.message));
+    onChange();
+  }
+
+  return (
+    <section>
+      <div className="row">
+        <h1>{row.name}</h1>
+      </div>
+      <p className="muted small">
+        {shortDate(date)}
+        {row.expected ? ` · horario ${row.expected.start} a ${row.expected.end}` : ' · no le tocaba trabajar'}
+        {row.workedMin > 0 && ` · ${dur(row.workedMin)} trabajadas`}
+      </p>
+      {row.review && (
+        <p className="warn small">
+          Tiene {row.in ? 'entrada pero no salida' : 'salida pero no entrada'}: la hora que se muestra es una sugerencia. Si
+          se olvidó de marcar, cargá la que falta; si tenía permiso o cambio de horario, justificalo.
+        </p>
+      )}
+
+      <ul className="list compact">
+        {marks.length === 0 && <li className="muted">No hay marcas este día.</li>}
+        {marks.map((m, i) => (
+          <li key={i} className="card attendance">
+            <span className="grow">
+              {m.label}
+              <div className="muted small">{m.device}</div>
+            </span>
+            <strong className="times">{hhmm(m.time)}</strong>
+          </li>
+        ))}
+      </ul>
+
+      {row.manualMarks.length > 0 && (
+        <>
+          <h2>Corregido a mano</h2>
+          <ul className="list compact">
+            {row.manualMarks.map((m) => (
+              <li key={m.id} className="card attendance">
+                <span className="grow">
+                  {hhmm(m.time)} · {m.note}
+                  <div className="muted small">Cargado por {m.by}</div>
+                </span>
+                <button className="link danger small" onClick={() => remove(m.id)}>
+                  Borrar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <form className="form card col wide" onSubmit={submit}>
+        <strong>Agregar una marca que falta</strong>
+        <div className="two">
+          <label>
+            Entrada
+            <input type="time" value={f.in} onChange={set('in')} />
+          </label>
+          <label>
+            Salida
+            <input type="time" value={f.out} onChange={set('out')} />
+          </label>
+        </div>
+        <label>
+          Motivo
+          <input value={f.note} onChange={set('note')} placeholder="Ej.: se olvidó de marcar la salida" required minLength={3} maxLength={300} />
+        </label>
+        {error && <p className="error">{error}</p>}
+        <div className="actions">
+          <button type="submit" disabled={busy}>
+            {busy ? 'Guardando…' : 'Guardar corrección'}
+          </button>
+          <Link className="button secondary" to={`/novedades?empleado=${row.employeeId}&fecha=${date}`}>
+            Justificar
+          </Link>
+          <button type="button" className="link" onClick={onClose}>
+            Volver
+          </button>
+        </div>
+        <p className="muted small">
+          Las marcas de los lectores no se pueden borrar ni cambiar; la corrección queda registrada con tu nombre.
+        </p>
+      </form>
+    </section>
   );
 }

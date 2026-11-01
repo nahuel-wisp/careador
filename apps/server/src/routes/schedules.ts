@@ -32,9 +32,16 @@ const absenceInput = z
     kind: z.enum(ABSENCE_KINDS),
     dateFrom: date,
     dateTo: date,
+    startTime: hhmm.nullish(),
+    endTime: hhmm.nullish(),
     note: z.string().trim().max(500).nullish(),
   })
   .refine((a) => a.dateFrom <= a.dateTo, 'La fecha hasta tiene que ser igual o posterior a la desde')
+  .refine(
+    (a) => a.kind !== 'horario_especial' || (a.startTime && a.endTime && a.startTime < a.endTime),
+    'El horario especial necesita entrada y salida (la salida después de la entrada)',
+  )
+  .transform((a) => (a.kind === 'horario_especial' ? a : { ...a, startTime: null, endTime: null }))
   .refine((a) => a.employeeId !== null || a.kind === 'feriado', 'Sólo los feriados pueden ser para todos');
 
 /** Comprobantes: fotos (la web las achica) o PDF. */
@@ -74,7 +81,14 @@ export function schedulesOn(ctx: AppContext, ymd: string) {
 /** Novedades que tocan una fecha, por empleado (las de todos van en la clave null). */
 export function absencesOn(ctx: AppContext, ymd: string) {
   const rows = ctx.db
-    .select({ id: absences.id, employeeId: absences.employeeId, kind: absences.kind, note: absences.note })
+    .select({
+      id: absences.id,
+      employeeId: absences.employeeId,
+      kind: absences.kind,
+      note: absences.note,
+      startTime: absences.startTime,
+      endTime: absences.endTime,
+    })
     .from(absences)
     .where(and(lte(absences.dateFrom, ymd), gte(absences.dateTo, ymd)))
     .all();

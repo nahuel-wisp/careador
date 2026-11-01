@@ -1,7 +1,9 @@
+import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { AppContext } from '../app';
-import { devices } from '../db/schema';
+import { devices, employees, events } from '../db/schema';
 import { dayAttendance } from '../lib/attendance';
 import { importRecords, parseHikcentralRecords } from '../lib/history';
 import { buildReport, reportQuery, reportXlsx } from '../lib/report';
@@ -29,6 +31,47 @@ export async function attendanceRoutes(app: FastifyInstance, ctx: AppContext) {
       ...day,
       syncedUntil: !lastSync.length || lastSync.includes(0) ? null : new Date(Math.min(...lastSync)),
     };
+  });
+
+  /**
+   * Corrección a mano: una marca que el empleado se olvidó de hacer (o el equipo no registró).
+   * Se guarda como marcación con origen «manual», el motivo y quién la cargó.
+   */
+  app.post('/api/marks', async (req, reply) => {
+    const m = z
+      .object({
+        employeeId: z.number().int().positive(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        note: z.string().trim().min(3, 'Poné el motivo de la corrección').max(300),
+      })
+      .parse(req.body);
+    const emp = db.select().from(employees).where(eq(employees.id, m.employeeId)).get();
+    if (!emp) return reply.code(404).send({ error: 'Empleado inexistente' });
+    const [y, mo, d] = m.date.split('-').map(Number);
+    const [h, mi] = m.time.split(':').map(Number);
+    const [row] = db
+      .insert(events)
+      .values({
+        deviceId: null,
+        source: 'manual',
+        deviceEventId: `manual:${randomUUID()}`,
+        time: new Date(y!, mo! - 1, d!, h!, mi!),
+        kind: 'access_granted',
+        verifyMode: 'unknown',
+        personCode: emp.code,
+        employeeId: emp.id,
+        raw: { note: m.note, by: req.user?.name ?? '?', userId: req.user?.id ?? null, at: new Date().toISOString() },
+      })
+      .returning({ id: events.id })
+      .all();
+    return reply.code(201).send(row);
+  });
+
+  /** Borra una corrección a mano (las marcas de los equipos no se pueden borrar). */
+  app.delete<{ Params: { id: string } }>('/api/marks/:id', async (req, reply) => {
+    const res = db.delete(events).where(and(eq(events.id, Number(req.params.id)), eq(events.source, 'manual'))).run();
+    return res.changes ? { ok: true } : reply.code(404).send({ error: 'Corrección inexistente' });
   });
 
   /** Reporte de un período: detalle día por día y resumen por empleado. */
