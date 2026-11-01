@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Fichada',
-        short_name: 'Fichada',
+        name: 'Control Horario',
+        short_name: 'Control Horario',
         description: 'Ingresos, egresos y asistencia del personal',
         lang: 'es-AR',
         start_url: '/',

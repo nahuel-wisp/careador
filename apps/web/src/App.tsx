@@ -61,5 +61,5 @@ export function App() {
 
 function Brand() {
   const empresa = useEntorno()?.empresa;
-  return <span className="brand">Fichada{empresa ? ` · ${empresa}` : ''}</span>;
+  return <span className="brand">Control Horario{empresa ? ` · ${empresa}` : ''}</span>;
 }

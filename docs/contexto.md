@@ -107,7 +107,7 @@ HikCentral Access Control (versión gratis) en un Windows de Arsa. Nombres y leg
   llegar tarde o salir antes no cuenta como ausente. No hay grupos de asistencia ni aprobaciones cargadas.
 - Las 3 personas sin departamento son los dueños.
 
-### Cómo lo resuelve Fichada
+### Cómo lo resuelve Control Horario
 
 - El personal **rota entre sucursales**: el día se mide con el horario de la sucursal donde marcó la entrada
   (salvo que el empleado tenga un horario propio).

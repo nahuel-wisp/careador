@@ -1,7 +1,7 @@
 # Careador — guía para trabajar en este repo
 
 App web mobile-first (PWA) para gestionar personal, horarios y asistencia sobre lectores faciales,
-hablando directo con los equipos (Hikvision ISAPI) sin HikCentral. En la app se llama **Fichada** (Careador
+hablando directo con los equipos (Hikvision ISAPI) sin HikCentral. En la app se llama **Control Horario** (Careador
 queda como nombre interno del repo). Primer cliente: **Arsa** = American Rider SA, concesionario de motos de
 La Plata, oficial Benelli y multimarca (`CAREADOR_EMPRESA` en el .env de cada instancia)
 (2 sucursales, 2 × DS-K1T321 firmware V3.9.2 build 240222, ~11–20 empleados, 3 dueños con iPhone).

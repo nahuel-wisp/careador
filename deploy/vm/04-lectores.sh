@@ -12,7 +12,7 @@
 #   5. Carga los dos lectores en las dos instancias, prueba la conexión, trae personal con fotos
 #      y las marcaciones de los últimos 35 días.
 #
-# Los lectores quedan en SÓLO LECTURA también en producción: Fichada lee lo mismo que HikCentral
+# Los lectores quedan en SÓLO LECTURA también en producción: la app lee lo mismo que HikCentral
 # pero no les escribe nada hasta que comparemos y decidamos pasarlos a lectura/escritura.
 # Se puede correr de nuevo sin problema (actualiza lo que ya existe, no duplica).
 set -uo pipefail

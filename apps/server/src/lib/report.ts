@@ -184,7 +184,7 @@ export function remarks(r: ReportRecord) {
 /** Excel: hoja «Registros» con las columnas de HikCentral (+ observaciones) y hoja «Resumen». */
 export async function reportXlsx(ctx: AppContext, report: Report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Fichada';
+  wb.creator = 'Control Horario';
   const empresa = ctx.config.CAREADOR_EMPRESA;
   const title = (ws: ExcelJS.Worksheet, name: string, cols: number) => {
     ws.addRow([`${name}${empresa ? ` — ${empresa}` : ''}`]).font = { bold: true, size: 14 };

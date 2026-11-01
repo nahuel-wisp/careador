@@ -24,7 +24,7 @@ export function LoginPage() {
   return (
     <main className="login">
       <img src="/icon.svg" alt="" width={72} height={72} />
-      <h1>Fichada</h1>
+      <h1>Control Horario</h1>
       <p className="muted">Ingresos y egresos del personal</p>
       <form onSubmit={submit} className="form">
         <label>

@@ -366,7 +366,7 @@ export function ReportsPage() {
               </table>
             </div>
           )}
-          <p className="muted small print-only">Generado con Fichada el {new Date().toLocaleString('es-AR', { hour12: false })}</p>
+          <p className="muted small print-only">Generado con Control Horario el {new Date().toLocaleString('es-AR', { hour12: false })}</p>
         </div>
       )}
     </section>

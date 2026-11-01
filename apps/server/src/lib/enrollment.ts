@@ -154,7 +154,7 @@ export async function importPersons(ctx: AppContext, deviceId: number, warn: (ms
     if (emp) {
       existing++;
     } else {
-      // Fichada carga "Apellido Nombre"; si la persona está en el historial de HikCentral, se usa cómo lo separaba él.
+      // La app carga "Apellido Nombre"; si la persona está en el historial de HikCentral, se usa cómo lo separaba él.
       const [last, ...first] = p.name.trim().split(/\s+/);
       const names = fromHistory.get(nameKey(p.name)) ?? { lastName: last || p.id, firstName: first.join(' ') || '-' };
       [emp] = db
