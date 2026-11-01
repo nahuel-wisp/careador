@@ -62,8 +62,10 @@ Hecho:
   DS-K1T321MFWX reales (V3.9.2, 01/11)**: conexión, 17 personas, búsqueda de caras y marcaciones; los días
   28–30/09 coinciden al minuto con el Excel de HikCentral (31 de 32; el otro es una marca a las 07:53 que
   HikCentral ignora por estar fuera de su ventana de entrada). Notas:
-  - **Los lectores no guardan la foto**, sólo el modelo facial (`faceURL` da 404 «Can't locate document»):
-    las fotos de los que cargó HikCentral hay que sacarlas de HikCentral o volver a tomarlas en la app.
+  - **Los lectores no guardan la foto**, sólo el modelo facial (`faceURL` da 404 «Can't locate document»).
+    Las fotos se sacaron de HikCentral (01/11): su web pide `.../PersonCredential/Persons/<id>/Photo?...&PHOTOTYPE=0`
+    (miniatura 135×189); con `PHOTOTYPE=1` da la original (~500×716). Se tomaron de la página con la sesión del
+    usuario, se pasaron a 480×640 y se cargaron con `personal:foto <legajo> < foto.jpg` (sin `--enviar`).
   - El nombre en el lector es «Nombre Apellido» (como lo carga HikCentral).
   - Por IP Cloud el Lector Arsa 1 corta pedidos largos: las marcaciones se leen de a un día.
   - `equipo:isapi <id> GET|POST <ruta>` (CLI) para diagnosticar contra el equipo, sólo lectura.
