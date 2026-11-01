@@ -438,8 +438,9 @@ function EmployeeForm({
             <div className="full">
               <label className="check">
                 <input type="checkbox" checked={f.ownLunch} onChange={(e) => setF({ ...f, ownLunch: e.target.checked })} />
-                Almuerzo propio
+                Almuerzo
               </label>
+              {!f.ownLunch && <span className="muted small">El del horario</span>}
               {f.ownLunch && (
                 <div className="times-edit" style={{ marginTop: 6 }}>
                   <input type="time" value={f.lunchStart} onChange={set('lunchStart')} aria-label="Empieza el almuerzo" required />
