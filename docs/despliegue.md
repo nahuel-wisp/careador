@@ -135,16 +135,45 @@ En la VM, los puertos de las instancias (rango 8000–8999) sólo los alcanza el
 > log de la app los pedidos aparecen con otra IP (p. ej. la puerta de enlace de Docker), `TRUST_PROXY`
 > no va a coincidir: revisar antes de dar por buena la IP de los clientes.
 
-## 6. Actualizar: pruebas → producción
+## 6. Versiones y actualización: pruebas → producción
+
+Desde la 1.0.0 del 01/11/2026 pruebas y producción son dos entornos separados: cada uno tiene su base y
+nunca se copian datos de uno al otro. Todo cambio se hace y se prueba en pruebas; a producción sólo pasa una
+versión ya probada, cuando se decide subirla.
+
+### Numeración
+
+**VERSIÓN.FUNCIÓN.CORRECCIÓN**, por ejemplo 1.2.3:
+
+- **VERSIÓN**: cambio grande que cambia la forma de usar la app.
+- **FUNCIÓN**: algo nuevo. Vuelve CORRECCIÓN a 0.
+- **CORRECCIÓN**: arreglo de algo que andaba mal.
+
+### Ciclo de una versión
+
+1. Se trabaja en `main` y se sube a pruebas con `actualizar.sh pruebas` las veces que haga falta.
+2. Lo que se va haciendo se anota en `CHANGELOG.md` bajo una versión nueva arriba de todo:
+   `## 1.1.0 — 2026-11-15` y debajo las notas, escritas para los usuarios. Es lo que aparece en la app al
+   entrar después de actualizar y en Ayuda › Versiones. Si cambia el uso, también se actualiza
+   `docs/manual.md`, que es el manual que se ve en Ayuda.
+3. Cuando está aprobada para producción: se pone la fecha final en el título, se marca en git con
+   `git tag v1.1.0` + `git push --tags`, se sube a pruebas por última vez y se pasa a producción.
+
+El test `apps/web/src/lib/version.test.ts` falla si un título del changelog está mal escrito o si las
+versiones no van de la más nueva a la más vieja.
+
+### Comandos
 
 ```bash
 sudo /opt/careador/deploy/actualizar.sh pruebas      # trae lo último de GitHub y lo instala en PRUEBAS
 # ... probar en arsa-test.nmc.wisp.com.ar ...
-sudo /opt/careador/deploy/actualizar.sh produccion   # pasa esa misma versión a PRODUCCIÓN
+sudo /opt/careador/deploy/actualizar.sh produccion   # respalda producción y le pasa la versión de pruebas
 sudo /opt/careador/deploy/actualizar.sh volver       # si algo falla, producción vuelve a la anterior
 ```
 
-Las migraciones de base se aplican solas al arrancar cada instancia.
+Los tres muestran la versión que quedó instalada. Las migraciones de base se aplican solas al arrancar cada
+instancia. Ojo con `volver` si la versión nueva cambió la base: la versión anterior no conoce las columnas
+nuevas, y puede hacer falta volver también al respaldo que dejó `produccion` en `data/respaldos/`.
 
 ## 7. Respaldos
 

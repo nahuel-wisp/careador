@@ -4,7 +4,8 @@ App web (mobile-first, instalable como PWA) para gestionar personal, horarios y 
 sobre equipos de control de acceso. Habla directo con los equipos (Hikvision vía ISAPI en la fase 1),
 sin depender de HikCentral, y está diseñada para sumar otras marcas.
 
-Contexto y decisiones: [docs/contexto.md](docs/contexto.md).
+Contexto y decisiones: [docs/contexto.md](docs/contexto.md). Manual de uso: [docs/manual.md](docs/manual.md).
+Versiones: [CHANGELOG.md](CHANGELOG.md). Despliegue y versionado: [docs/despliegue.md](docs/despliegue.md).
 
 ## Estructura
 

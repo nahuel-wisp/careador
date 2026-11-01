@@ -14,6 +14,14 @@ Contexto completo y decisiones: `docs/contexto.md`. Despliegue: `docs/despliegue
   instaló y administra la red y los equipos del cliente.
 - Explicar decisiones con recomendación clara, sin listas eternas de opciones.
 - Commits chicos y descriptivos en `main`, push a GitHub (es el respaldo).
+- **Pruebas y producción son entornos separados desde la 1.0.0 (01/11/2026)**: nunca se copian datos entre
+  las bases. Todo se hace y se prueba en pruebas (`actualizar.sh pruebas` lo puede correr Claude como
+  `claude`); a producción sólo pasa cuando Nahuel lo pide, y él corre por PuTTY
+  `sudo /opt/careador/deploy/actualizar.sh produccion`.
+- **Versiones** VERSIÓN.FUNCIÓN.CORRECCIÓN (`docs/despliegue.md` §6). Todo cambio visible se anota en
+  `CHANGELOG.md` bajo la versión que viene, escrito para los usuarios: es el aviso que ven al entrar después
+  de actualizar y Ayuda › Versiones. Si cambia el uso, actualizar también `docs/manual.md` (Ayuda › Manual).
+  Al pasar a producción: fecha final en el título, `git tag vX.Y.Z` y push de tags.
 - Antes de commitear: `npm run typecheck && npm test` (y `npm run build` si se tocó la web).
 - **Nunca** commitear datos reales del cliente: van en `docs/ejemplos/privado/` (ignorado por git).
 - Nunca commitear credenciales de equipos, `.env` ni `CAREADOR_SECRET`.
@@ -112,6 +120,12 @@ Hecho:
   (personal, horarios, novedades, equipos, importaciones) con un hook `onResponse` y la tabla `LABELS`.
   Pantalla `/historial` (desde Reportes) y el historial del día en el detalle de Asistencia.
 - Novedad **«Horario especial»**: otra entrada/salida para esos días (reemplaza al horario).
+- **Ayuda y versiones** (`pages/Help.tsx`, `lib/version.ts`, `lib/markdown.tsx`): `/ayuda` muestra
+  `docs/manual.md` con índice y `/ayuda/versiones` el `CHANGELOG.md`, importados con `?raw`. `VersionNotice`
+  muestra las notas de la versión actual una vez por dispositivo (localStorage `version-vista`).
+  `actualizar.sh` etiqueta la imagen con la versión y respalda producción antes de actualizarla.
+- **1.0.0 en producción (01/11/2026)**: producción arrancó con una copia de los datos de pruebas (script 08,
+  única vez). Lector Calle 13 quedó en lectura/escritura en producción; Calle 1 en sólo lectura.
 
 Pendiente, en orden (01/11):
 1. **Prueba de escritura**: en producción, Equipos → Editar un lector → sacar «Sólo lectura»; Nahuel se da de
@@ -122,7 +136,7 @@ Pendiente, en orden (01/11):
 4. Red: filtrar el port-forward `:1082` a la IP de salida 181.191.64.9 (probar desde otra IP); cerrar o
    filtrar HikCentral publicado en `190.18.165.32:1080` por HTTP; más adelante WireGuard.
 5. Historial anterior a septiembre: exportar de HikCentral «Registros de entradas y salidas» e importarlo
-   (Asistencia → Subir Excel). Feriados 2026 en Novedades.
+   (Admin → Importar historial). Feriados 2026 en Novedades.
 6. Revisar con Arsa: horas extra (¿la hora de más de Arsa 2?), si los sábados rotan, y el PDF impreso.
 
 Más adelante: horas extra (¿la hora de más de Arsa 2 vs Arsa 1 es extra?; ver cómo lo liquida Arsa),

@@ -7,6 +7,7 @@ import { AdminPage } from './pages/Admin';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
 import { FeedbackPage, InboxPage } from './pages/Feedback';
+import { HelpPage, VersionNotice } from './pages/Help';
 import { HistoryPage } from './pages/History';
 import { ImportPage } from './pages/Import';
 import { LoginPage } from './pages/Login';
@@ -62,6 +63,12 @@ export function App() {
               ))}
           </nav>
           <div className="user">
+            <Link to="/ayuda">
+              <span className="ico" aria-hidden>
+                ❓
+              </span>
+              <span>Ayuda</span>
+            </Link>
             <a href="#" onClick={(e) => (e.preventDefault(), setVista(celular ? 'pc' : 'celular'))}>
               <span className="ico" aria-hidden>
                 {celular ? '💻' : '📱'}
@@ -90,6 +97,7 @@ export function App() {
               <Route path="/personal/:id" element={<EmployeePage />} />
               <Route path="/cuenta" element={<AccountPage />} />
               <Route path="/sugerencias" element={<FeedbackPage />} />
+              <Route path="/ayuda/:tab?" element={<HelpPage />} />
               <Route path="*" element={<Navigate to="/personal" replace />} />
             </Routes>
           ) : (
@@ -103,6 +111,7 @@ export function App() {
               <Route path="/sucursales" element={<SitesPage />} />
               <Route path="/cuenta" element={<AccountPage />} />
               <Route path="/sugerencias" element={<FeedbackPage />} />
+              <Route path="/ayuda/:tab?" element={<HelpPage />} />
               {isAdmin && <Route path="/admin" element={<AdminPage />} />}
               {isAdmin && <Route path="/bandeja" element={<InboxPage />} />}
               {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
@@ -114,6 +123,7 @@ export function App() {
             </Routes>
           )}
         </main>
+        <VersionNotice />
       </div>
     </EntornoProvider>
   );
