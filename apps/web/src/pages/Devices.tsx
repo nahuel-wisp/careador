@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { api } from '../api';
 import { useEntorno } from '../entorno';
+import { AdminHeader } from './Admin';
 
 interface Device {
   id: number;
@@ -86,10 +87,7 @@ export function DevicesPage() {
 
   return (
     <section>
-      <div className="row">
-        <h1>Equipos</h1>
-        {!adding && <button onClick={() => setAdding(true)}>Agregar</button>}
-      </div>
+      <AdminHeader title="Equipos">{!adding && <button onClick={() => setAdding(true)}>Agregar</button>}</AdminHeader>
       {error && <p className="error">{error}</p>}
       {adding && (
         <DeviceForm

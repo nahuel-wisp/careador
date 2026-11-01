@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { api } from '../api';
 import { useAuth, type User } from '../auth';
 
@@ -78,7 +77,7 @@ export function ForcedPasswordPage() {
   );
 }
 
-/** Mi cuenta: datos, cambio de contraseña y (admin) accesos a Usuarios e Historial. */
+/** Mi cuenta: datos, cambio de contraseña y salir. */
 export function AccountPage() {
   const { user, logout } = useAuth();
   if (!user) return null;
@@ -88,19 +87,6 @@ export function AccountPage() {
       <p className="muted">
         {user.name} · usuario «{user.username}» · {user.role === 'admin' ? 'administrador' : 'encargado'}
       </p>
-      {user.role === 'admin' && (
-        <div className="actions">
-          <Link className="button secondary" to="/usuarios">
-            Usuarios
-          </Link>
-          <Link className="button secondary" to="/historial">
-            Historial de cambios
-          </Link>
-          <Link className="button secondary" to="/importar">
-            Importar historial de HikCentral
-          </Link>
-        </div>
-      )}
       <ChangePassword />
       <button className="link danger" onClick={logout}>
         Salir de la app

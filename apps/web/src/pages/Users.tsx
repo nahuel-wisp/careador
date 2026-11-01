@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { AdminHeader } from './Admin';
 
 interface AppUser {
   id: number;
@@ -47,10 +48,7 @@ export function UsersPage() {
 
   return (
     <section>
-      <div className="row">
-        <h1>Usuarios</h1>
-        {!adding && <button onClick={() => setAdding(true)}>Agregar</button>}
-      </div>
+      <AdminHeader title="Usuarios">{!adding && <button onClick={() => setAdding(true)}>Agregar</button>}</AdminHeader>
       <p className="muted small">
         Encargado: Personal, Asistencia, Novedades, Horarios y Reportes. Administrador: todo, incluidos Equipos y
         Usuarios. La contraseña que pongas es provisoria y se cambia al entrar.

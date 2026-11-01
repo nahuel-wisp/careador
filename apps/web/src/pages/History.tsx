@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { api } from '../api';
+import { AdminHeader } from './Admin';
 
 interface AuditRow {
   id: number;
@@ -24,12 +24,7 @@ export function HistoryPage() {
 
   return (
     <section>
-      <div className="row">
-        <h1>Historial de cambios</h1>
-        <Link className="button secondary" to="/reportes">
-          Volver
-        </Link>
-      </div>
+      <AdminHeader title="Historial de cambios" />
       <p className="muted small">
         Correcciones de marcas, novedades, horarios, personal y equipos. No se puede editar ni borrar.
       </p>

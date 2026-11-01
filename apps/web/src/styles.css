@@ -258,3 +258,5 @@ tr.group-start td { border-top: 2px solid var(--border); }
 a.link { color: var(--accent); text-decoration: none; }
 .form label > input:not([type=checkbox]), .form label > select { width: 100%; min-width: 0; }
 .form.card { justify-content: normal; }
+.admin-link { color: var(--fg); text-decoration: none; }
+.admin-icon { font-size: 1.6rem; width: 40px; text-align: center; flex: none; }

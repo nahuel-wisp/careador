@@ -1,7 +1,8 @@
-import { Link, NavLink, Route, Routes } from 'react-router';
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './auth';
 import { EntornoBanner, EntornoProvider, useEntorno } from './entorno';
 import { AbsencesPage } from './pages/Absences';
+import { AdminPage } from './pages/Admin';
 import { AccountPage, ForcedPasswordPage } from './pages/Account';
 import { AttendancePage } from './pages/Attendance';
 import { DevicesPage } from './pages/Devices';
@@ -20,11 +21,15 @@ const tabs = [
   { to: '/reportes', label: 'Reportes', icon: '📊' },
   { to: '/novedades', label: 'Novedades', icon: '🗓️' },
   { to: '/horarios', label: 'Horarios', icon: '🕒' },
-  { to: '/equipos', label: 'Equipos', icon: '📟', admin: true },
+  { to: '/admin', label: 'Admin', icon: '⚙️', admin: true },
 ];
+
+/** Páginas que se abren desde Administración: la pestaña queda marcada. */
+const ADMIN_PATHS = ['/equipos', '/usuarios', '/importar', '/historial', '/simulador'];
 
 export function App() {
   const { user, loading } = useAuth();
+  const { pathname } = useLocation();
   if (loading) return null;
   if (!user) return <LoginPage />;
   if (user.mustChangePassword) return <ForcedPasswordPage />;
@@ -47,9 +52,10 @@ export function App() {
           <Route path="/horarios" element={<SchedulesPage />} />
           <Route path="/novedades" element={<AbsencesPage />} />
           <Route path="/reportes" element={<ReportsPage />} />
-          <Route path="/historial" element={<HistoryPage />} />
+          {isAdmin && <Route path="/historial" element={<HistoryPage />} />}
           <Route path="/asistencia" element={<AttendancePage />} />
           <Route path="/cuenta" element={<AccountPage />} />
+          {isAdmin && <Route path="/admin" element={<AdminPage />} />}
           {isAdmin && <Route path="/equipos" element={<DevicesPage />} />}
           {isAdmin && <Route path="/usuarios" element={<UsersPage />} />}
           {isAdmin && <Route path="/importar" element={<ImportPage />} />}
@@ -58,7 +64,12 @@ export function App() {
       </main>
       <nav className="tabbar" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
         {visibleTabs.map((t) => (
-          <NavLink key={t.to} to={t.to} end className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
+          <NavLink
+            key={t.to}
+            to={t.to}
+            end
+            className={({ isActive }) => (isActive || (t.admin && ADMIN_PATHS.some((p) => pathname.startsWith(p))) ? 'tab active' : 'tab')}
+          >
             <span aria-hidden>{t.icon}</span>
             <span>{t.label}</span>
           </NavLink>

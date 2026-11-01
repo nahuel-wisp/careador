@@ -1,18 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { api } from '../api';
 import { shortDate } from '../lib/schedules';
+import { AdminHeader } from './Admin';
 
-/** Herramientas del administrador que no son del uso diario. */
+/** Importar el historial de marcaciones desde el Excel de HikCentral. */
 export function ImportPage() {
   return (
     <section>
-      <div className="row">
-        <h1>Importar historial</h1>
-        <Link className="button secondary" to="/cuenta">
-          Volver
-        </Link>
-      </div>
+      <AdminHeader title="Importar historial" />
       <HistoryImport />
     </section>
   );
