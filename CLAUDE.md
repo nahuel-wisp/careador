@@ -78,8 +78,10 @@ Hecho:
   (sin acentos ni orden) y lo que no coincide queda con `person_name` hasta que el empleado exista.
 
 Pendiente, en orden:
-1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY) y la ruta a
-   los lectores (WireGuard hacia las MikroTik, necesita sudo).
+1. Crear los usuarios de los dueños en producción (`usuario:crear`, lo hace Nahuel por PuTTY). Lectores:
+   port-forward por IP Cloud `:1082` (Arsa 1 `cc230e7e1e6e.sn.mynetname.net`, Arsa 2 `d5030cc700bd...`);
+   falta filtrar el origen a 181.191.64.9 (salida de la VM) y, más adelante, WireGuard. Cargarlos con
+   `deploy/vm/04-lectores.sh` (quedan en sólo lectura también en producción hasta comparar con HikCentral).
 2. Probar el driver Hikvision contra los DS-K1T321 reales (en pruebas, sólo lectura).
 3. Cargar los horarios de Arsa en producción (relevados de HikCentral, `docs/contexto.md`).
 4. **Reportes Excel** (exceljs): hoja "Registros" igual a la de HikCentral

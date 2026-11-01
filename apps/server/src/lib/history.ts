@@ -11,6 +11,8 @@ import { employees, events } from '../db/schema';
 
 export interface RecordRow {
   name: string;
+  firstName: string;
+  lastName: string;
   department: string;
   date: string; // AAAA-MM-DD
   in: string | null; // HH:MM
@@ -76,9 +78,11 @@ export async function parseHikcentralRecords(file: Buffer): Promise<RecordRow[]>
       }
       const v = row.values as ExcelJS.CellValue[];
       const date = dateOf(v[col.fecha]);
-      const name = `${text(v[col.nombre])} ${text(v[col.apellido])}`.trim();
+      const firstName = text(v[col.nombre]);
+      const lastName = text(v[col.apellido]);
+      const name = `${firstName} ${lastName}`.trim();
       if (!date || !name) return;
-      rows.push({ name, department: text(v[col.depto]), date, in: timeOf(v[col.entrada]), out: timeOf(v[col.salida]) });
+      rows.push({ name, firstName, lastName, department: text(v[col.depto]), date, in: timeOf(v[col.entrada]), out: timeOf(v[col.salida]) });
     });
   }
   if (!rows.length) {
@@ -157,4 +161,17 @@ export function linkImported(ctx: AppContext) {
     if (employeeId) linked += ctx.db.update(events).set({ employeeId }).where(eq(events.id, p.id)).run().changes;
   }
   return linked;
+}
+
+/**
+ * Nombre y apellido tal como estaban separados en HikCentral, para una persona del historial importado.
+ * Los equipos guardan el nombre en un solo campo y no hay forma segura de partirlo ("Juan Di Fonzo").
+ */
+export function historyNames(ctx: AppContext) {
+  const map = new Map<string, { firstName: string; lastName: string }>();
+  for (const r of ctx.db.select({ raw: events.raw }).from(events).where(eq(events.source, 'import')).all()) {
+    const row = r.raw as Partial<RecordRow> | null;
+    if (row?.name && row.firstName && row.lastName) map.set(nameKey(row.name), { firstName: row.firstName, lastName: row.lastName });
+  }
+  return map;
 }

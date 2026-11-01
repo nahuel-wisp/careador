@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AppContext } from '../app';
 import { devices, employeeFaces, employees, enrollments } from '../db/schema';
 import { driverFor } from './devices';
+import { historyNames, linkImported, nameKey } from './history';
 
 /** Cada cuánto se reintenta lo que quedó pendiente o con error (equipo apagado, sin red...). */
 export const RETRY_MS = 5 * 60 * 1000;
@@ -127,4 +128,70 @@ export function markPending(ctx: AppContext, employeeId: number, opts: { face?: 
     .set({ status: 'pending', ...(opts.face ? { faceSynced: false } : {}) })
     .where(and(eq(enrollments.employeeId, employeeId), inArray(enrollments.status, ['synced', 'error', 'pending'])))
     .run();
+}
+
+/** Los equipos aceptan JPEG chico; la web ya lo manda en 480×640 y < 200 KB. */
+export const MAX_FACE_BYTES = 1024 * 1024;
+
+/**
+ * Trae las personas que ya están cargadas en un equipo (p. ej. las que cargó HikCentral) como empleados,
+ * con su mismo legajo y la foto que ya reconoce el equipo (para los que no tienen foto en la app).
+ * Sólo lee del equipo: funciona igual en sólo lectura.
+ */
+export async function importPersons(ctx: AppContext, deviceId: number, warn: (msg: string) => void = () => {}) {
+  const { db } = ctx;
+  const device = db.select().from(devices).where(eq(devices.id, deviceId)).get();
+  if (!device) throw Object.assign(new Error('Equipo inexistente'), { statusCode: 404 });
+
+  const driver = driverFor(ctx, device);
+  const fromHistory = historyNames(ctx);
+  let created = 0;
+  let existing = 0;
+  let faces = 0;
+  let facesFailed = 0;
+  for await (const p of driver.listPersons()) {
+    let emp = db.select().from(employees).where(eq(employees.code, p.id)).get();
+    if (emp) {
+      existing++;
+    } else {
+      // Fichada carga "Apellido Nombre"; si la persona está en el historial de HikCentral, se usa cómo lo separaba él.
+      const [last, ...first] = p.name.trim().split(/\s+/);
+      const names = fromHistory.get(nameKey(p.name)) ?? { lastName: last || p.id, firstName: first.join(' ') || '-' };
+      [emp] = db
+        .insert(employees)
+        .values({ code: p.id, ...names, siteId: device.siteId })
+        .returning()
+        .all();
+      created++;
+    }
+    // Ya está en este equipo: no hace falta mandarlo de nuevo.
+    db.insert(enrollments)
+      .values({ deviceId, employeeId: emp!.id, status: 'synced', faceSynced: (p.faceCount ?? 0) > 0, syncedAt: new Date() })
+      .onConflictDoNothing()
+      .run();
+
+    // La foto que ya reconoce el equipo, si la app todavía no tiene una.
+    const hasFace = db.select({ id: employeeFaces.employeeId }).from(employeeFaces).where(eq(employeeFaces.employeeId, emp!.id)).get();
+    if (!hasFace && (p.faceCount ?? 1) > 0 && driver.getFace) {
+      try {
+        const jpeg = await driver.getFace(p.id);
+        if (!jpeg) continue;
+        const buf = Buffer.from(jpeg);
+        if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf.length > MAX_FACE_BYTES) throw new Error('no es un JPEG válido');
+        db.insert(employeeFaces).values({ employeeId: emp!.id, jpeg: buf }).run();
+        // A los demás equipos hay que mandársela; a éste no.
+        markPending(ctx, emp!.id, { face: true });
+        db.update(enrollments)
+          .set({ status: 'synced', faceSynced: true, syncedAt: new Date(), lastError: null })
+          .where(and(eq(enrollments.deviceId, deviceId), eq(enrollments.employeeId, emp!.id)))
+          .run();
+        faces++;
+      } catch (err) {
+        facesFailed++;
+        warn(`No se pudo traer la foto de ${p.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+  linkImported(ctx); // historial de HikCentral que esperaba a estos empleados
+  return { created, existing, faces, facesFailed };
 }

@@ -35,7 +35,13 @@ lo que necesita root lo corre el administrador por PuTTY con `sudo bash /home/cl
   repositorio oficial, y firewall: SSH sólo desde la VLAN de trabajo (10.10.20.0/24), puertos de apps
   8000–8999 sólo desde el proxy (10.10.70.2). Deja 5 minutos para confirmar el firewall
   (`sudo systemctl stop ufw-rescate.timer`); si no se confirma, se apaga solo.
-- Ruta/VPN hacia los lectores. Prueba desde la VM:
+- `03-careador.sh`: carpetas de las instancias y cron del respaldo diario.
+- `04-lectores.sh`: actualiza pruebas (y, si se confirma, producción), deja sucursales y horarios de Arsa,
+  pide usuario/contraseña de cada lector (no se muestran), opcionalmente importa el Excel de HikCentral, y
+  carga los lectores en **sólo lectura** en las dos instancias trayendo personal, fotos y marcaciones.
+  Usa los comandos `equipo:crear`, `equipo:importar`, `marcaciones:leer` e `historial:importar` del CLI.
+- Ruta/VPN hacia los lectores. Hoy: port-forward en cada MikroTik (IP Cloud `:1082` → lector:80), filtrado
+  por origen a la IP pública de salida de la VM (181.191.64.9). Prueba desde la VM:
 
   ```bash
   curl -i http://IP_O_HOST_DEL_LECTOR/ISAPI/System/deviceInfo
