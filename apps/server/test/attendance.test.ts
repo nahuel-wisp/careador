@@ -170,6 +170,16 @@ describe('marcaciones y asistencia del día', () => {
     const all = (await inject('GET', '/api/audit')).json();
     expect(all.map((h: { summary: string }) => h.summary)).toContain('Cargó enfermedad el ' + day(-1) + ': gripe');
 
+    // Un dueño, sin sucursal, marca a las 10:30 en el lector: no se lo mide contra el horario de esa sucursal.
+    const duenio = (await inject('POST', '/api/employees', { firstName: 'Dueño', lastName: 'Arsa', siteId: null })).json();
+    await t.app.inject({ method: 'PUT', url: `/api/employees/${duenio.id}/face`, headers: { ...t.headers, 'content-type': 'image/jpeg' }, payload: JPEG });
+    // Un lector nuevo de la misma sucursal: su primera lectura trae los días anteriores.
+    const sim2 = (await inject('POST', '/api/devices', { siteId: site.id, name: 'Lector 2', brand: 'simulador', host: 'att-2', username: 'x', password: 'x' })).json().id;
+    await inject('POST', '/api/sync');
+    await inject('POST', `/api/simulador/${sim2}/marcar`, { personId: duenio.code, at: at(10, 30) });
+    await inject('POST', '/api/events/sync');
+    expect((await get())(duenio.code)).toMatchObject({ status: 'presente', schedule: null, expected: null, lateMin: 0, review: false });
+
     // Volver al horario de la sucursal desde hoy deja el historial de ayer intacto.
     await inject('PUT', `/api/employees/${id('2')}/schedule`, { scheduleId: null, from: day(0) });
     expect((await get())('2')).toMatchObject({ schedule: { name: 'Temprano' } });

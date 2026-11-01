@@ -61,7 +61,8 @@ export function dayAttendance(ctx: AppContext, ymd: string, now = new Date()) {
     const mine = all.filter((r) => !r.voidedAt);
     // El personal rota entre sucursales: el día se mide con el horario de donde marcó (la primera vez).
     const workedSiteId = (mine[0] && deviceSite.get(mine[0].deviceId)) ?? e.siteId;
-    const schedule = scheduleOf(e.id, workedSiteId);
+    // Sin sucursal (los dueños) no se controla horario, marque donde marque; salvo que tenga uno propio.
+    const schedule = scheduleOf(e.id, e.siteId === null ? null : workedSiteId);
     const novedades = absencesOf(e.id);
     // Un horario especial (cambio puntual) reemplaza al de todos los días.
     const special = novedades.find((a) => a.kind === 'horario_especial' && a.startTime && a.endTime);

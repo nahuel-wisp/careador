@@ -299,7 +299,15 @@ export function ReportsPage() {
                   </thead>
                   <tbody>
                     {report.summary.map((s) => (
-                      <tr key={s.employeeId}>
+                      <tr
+                        key={s.employeeId}
+                        className="clickable"
+                        title="Ver su día por día"
+                        onClick={() => {
+                          setEmployeeId(String(s.employeeId));
+                          setView('detalle');
+                        }}
+                      >
                         <td className="nowrap">
                           <strong>{s.name}</strong>
                         </td>
