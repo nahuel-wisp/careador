@@ -50,13 +50,13 @@ Principios que no hay que romper:
 
 | | Producción | Pruebas |
 |---|---|---|
-| URL | `arsa.nmc.wisp.com.ar` | `arsa-test.nmc.wisp.com.ar` |
+| URL | `arsa.nasistemas.com.ar` | `arsa-test.nasistemas.com.ar` |
 | Carpeta / puerto | `/srv/careador-arsa` · 8080 | `/srv/careador-arsa-test` · 8180 |
 | Imagen | `careador:estable` | `careador:latest` |
 | Equipos reales | lectura/escritura | forzado sólo lectura (`DEVICES_READ_ONLY=true`) |
 | Simulador | no | sí (`SIMULATOR_ENABLED=true`) |
 
-- DNS: comodín `*.nmc.wisp.com.ar` → 181.191.64.7 (Traefik) en PowerDNS. Let's Encrypt lo hace Traefik.
+- DNS: `arsa` y `arsa-test.nasistemas.com.ar` → 181.191.64.7 (Traefik). Antes del 05/11/2026 eran `*.nmc.wisp.com.ar`. La app no depende del dominio: cambiarlo es sólo proxy y DNS. Let's Encrypt lo hace Traefik.
 - La config de Traefik la maneja el usuario (tiene muchas modificaciones propias): no reescribirla,
   sólo indicar lo que la app necesita.
 - Los lectores se alcanzan vía IP Cloud de los MikroTik (las sucursales tienen más de un proveedor).

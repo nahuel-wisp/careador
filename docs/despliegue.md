@@ -1,6 +1,6 @@
 # Despliegue en VM con Docker Compose
 
-VM `10.10.70.5` (Careador y futuros proyectos) detrás de Traefik (`https://arsa.nmc.wisp.com.ar`).
+VM `10.10.70.5` (Careador y futuros proyectos) detrás de Traefik (`https://arsa.nasistemas.com.ar`).
 Base: **Ubuntu Server 26.04**, 4 vCPU, 8 GB RAM, 300 GB disco, Docker Compose.
 Backups de la VM con Nakivo hacia el servidor de backups.
 
@@ -8,7 +8,7 @@ Backups de la VM con Nakivo hacia el servidor de backups.
 
 ```
 Traefik (HTTPS, Let's Encrypt)
-   │  arsa.nmc.wisp.com.ar → 10.10.70.5:8080
+   │  arsa.nasistemas.com.ar → 10.10.70.5:8080
    ▼
 VM Ubuntu 26.04 + Docker
    ├── /opt/careador          código (git) → imagen careador:latest
@@ -63,7 +63,7 @@ Si el repo es privado, clonar con una deploy key de sólo lectura.
 
 | | Producción | Pruebas |
 |---|---|---|
-| URL | `arsa.nmc.wisp.com.ar` | `arsa-test.nmc.wisp.com.ar` |
+| URL | `arsa.nasistemas.com.ar` | `arsa-test.nasistemas.com.ar` |
 | Carpeta | `/srv/careador-arsa` | `/srv/careador-arsa-test` |
 | Puerto VM | 8080 | 8180 |
 | Imagen | `careador:estable` | `careador:latest` |
@@ -110,15 +110,15 @@ Detalle del proxy: `C:\Users\nahuel\Claude\proxy\CLAUDE.md`.
 
 Publicar las dos instancias:
 
-1. DNS: ya resuelve por el comodín `*.nmc.wisp.com.ar` → 181.191.64.7 (el panel lo valida al guardar).
+1. DNS: `arsa` y `arsa-test.nasistemas.com.ar` → 181.191.64.7 (el panel lo valida al guardar). Hasta el 05/11/2026 fueron `*.nmc.wisp.com.ar`.
 2. En el panel, «nuevo sitio» por cada una (destino http, sin verificar certificado):
 
    | Nombre | Dominio | Destino |
    |---|---|---|
-   | Careador Arsa | `arsa.nmc.wisp.com.ar` | `http://10.10.70.5:8080` |
-   | Careador Arsa pruebas | `arsa-test.nmc.wisp.com.ar` | `http://10.10.70.5:8180` |
+   | Careador Arsa | `arsa.nasistemas.com.ar` | `http://10.10.70.5:8080` |
+   | Careador Arsa pruebas | `arsa-test.nasistemas.com.ar` | `http://10.10.70.5:8180` |
 
-3. El certificado de Let's Encrypt lo saca Traefik solo en segundos. Probar: `https://arsa-test.nmc.wisp.com.ar/api/health`.
+3. El certificado de Let's Encrypt lo saca Traefik solo en segundos. Probar: `https://arsa-test.nasistemas.com.ar/api/health`.
 
 Lo que la app necesita y ya está resuelto:
 
@@ -166,7 +166,7 @@ versiones no van de la más nueva a la más vieja.
 
 ```bash
 sudo /opt/careador/deploy/actualizar.sh pruebas      # trae lo último de GitHub y lo instala en PRUEBAS
-# ... probar en arsa-test.nmc.wisp.com.ar ...
+# ... probar en arsa-test.nasistemas.com.ar ...
 sudo /opt/careador/deploy/actualizar.sh produccion   # respalda producción y le pasa la versión de pruebas
 sudo /opt/careador/deploy/actualizar.sh volver       # si algo falla, producción vuelve a la anterior
 ```
